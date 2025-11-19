@@ -42,11 +42,9 @@ resource "aws_api_gateway_integration" "post_passwords_integration" {
   rest_api_id             = aws_api_gateway_rest_api.password_api.id
   resource_id             = aws_api_gateway_resource.passwords.id
   http_method             = aws_api_gateway_method.post_passwords.http_method
+  type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  type                    = "HTTP"
-  uri                     = "http://host.docker.internal:8080/api/passwords"
-
-  depends_on = [aws_api_gateway_method.post_passwords]
+  uri                     = aws_lambda_function.create.invoke_arn
 }
 
 # Deployment

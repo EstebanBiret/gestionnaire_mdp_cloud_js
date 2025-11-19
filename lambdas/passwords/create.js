@@ -1,69 +1,37 @@
-const { PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { docClient } = require('../shared/aws-clients');
-const { successResponse, errorResponse, sendLog, extractSessionId, validateSession } = require('../shared/utils');
-const { v4: uuidv4 } = require('uuid');
-
 exports.handler = async (event) => {
   try {
-    const sessionId = extractSessionId(event);
-
-    if (!sessionId) {
-      return errorResponse('Unauthorized', 401);
-    }
-
-    // Valider la session
-    const session = await validateSession(sessionId, docClient);
-    if (!session) {
-      return errorResponse('Invalid or expired session', 401);
-    }
-
     const body = JSON.parse(event.body || '{}');
     const { site, login, encryptedPassword } = body;
 
     if (!site || !login || !encryptedPassword) {
-      return errorResponse('Site, login and encrypted password are required', 400);
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "Site, login and encryptedPassword are required" })
+      };
     }
 
-    const passwordId = uuidv4();
-    const now = new Date().toISOString();
-
     const password = {
-      userId: session.userId,
-      passwordId,
+      id: Date.now().toString() + Math.floor(Math.random() * 1000),
       site,
       login,
       encryptedPassword,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    await docClient.send(
-      new PutCommand({
-        TableName: 'passwords',
-        Item: password,
-      })
-    );
+    console.log("Event:", event);
+    console.log("Parsed body:", body);
 
-    await sendLog('password-logs', {
-      action: 'password_created',
-      userId: session.userId,
-      passwordId,
-      site,
-    });
-
-    return successResponse(
-      {
-        id: passwordId,
-        site,
-        login,
-        encryptedPassword,
-        createdAt: now,
-        updatedAt: now,
-      },
-      201
-    );
+    return {
+      statusCode: 201,
+      body: JSON.stringify(password)
+    };
   } catch (error) {
-    console.error('Error in create password:', error);
-    return errorResponse('Internal server error', 500);
+    console.error(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Internal server error" })
+    };
   }
+  
 };

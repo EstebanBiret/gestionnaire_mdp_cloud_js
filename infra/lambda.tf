@@ -32,3 +32,11 @@ resource "aws_lambda_function" "getAll" {
   filename      = "../lambdas/passwords/zip/getAll.zip"
   role          = aws_iam_role.lambda_exec.arn
 }
+
+resource "aws_lambda_function" "create" {
+  function_name = "create"
+  runtime       = "nodejs18.x"  
+  handler       = "create.handler"  
+  filename      = "../lambdas/passwords/zip/create.zip"  
+  role          = aws_iam_role.lambda_exec.arn
+}

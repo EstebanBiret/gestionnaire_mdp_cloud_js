@@ -11,3 +11,6 @@
 
 # Node modules
 /node_modules
+
+# ZIP output
+*.zip
