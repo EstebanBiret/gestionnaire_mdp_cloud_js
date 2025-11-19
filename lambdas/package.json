@@ -1,0 +1,20 @@
+{
+  "name": "password-manager-lambdas",
+  "version": "1.0.0",
+  "description": "Lambda functions for password manager",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.490.0",
+    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/client-sqs": "^3.490.0",
+    "@aws-sdk/lib-dynamodb": "^3.490.0",
+    "uuid": "^9.0.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}

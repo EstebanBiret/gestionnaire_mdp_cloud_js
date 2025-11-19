@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Mots de Passe</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Page de connexion -->
+    <div id="loginPage" class="page">
+        <div class="container">
+            <div class="card">
+                <h1>🔐 Gestionnaire de Mots de Passe</h1>
+                <div id="loginForm">
+                    <h2>Connexion</h2>
+                    <input type="text" id="loginUsername" placeholder="Nom d'utilisateur" />
+                    <input type="password" id="loginPassword" placeholder="Mot de passe" />
+                    <button onclick="login()">Se connecter</button>
+                    <p class="switch-link">
+                        Pas de compte ? <a onclick="showRegister()">S'inscrire</a>
+                    </p>
+                </div>
+                <div id="registerForm" style="display: none;">
+                    <h2>Inscription</h2>
+                    <input type="text" id="registerUsername" placeholder="Nom d'utilisateur" />
+                    <input type="password" id="registerPassword" placeholder="Mot de passe (min 8 caractères)" />
+                    <button onclick="register()">S'inscrire</button>
+                    <p class="switch-link">
+                        Déjà un compte ? <a onclick="showLogin()">Se connecter</a>
+                    </p>
+                </div>
+                <div id="authError" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page principale -->
+    <div id="mainPage" class="page" style="display: none;">
+        <nav class="navbar">
+            <h1>🔐 Mes Mots de Passe</h1>
+            <div>
+                <span id="username"></span>
+                <button onclick="logout()" class="btn-logout">Déconnexion</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="actions">
+                <button onclick="showAddModal()" class="btn-primary">+ Ajouter un mot de passe</button>
+            </div>
+
+            <div id="passwordsList" class="passwords-grid"></div>
+        </div>
+    </div>
+
+    <!-- Modal pour ajouter/modifier -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Ajouter un mot de passe</h2>
+            <input type="text" id="modalSite" placeholder="Site web" />
+            <input type="text" id="modalLogin" placeholder="Login" />
+            <input type="password" id="modalPassword" placeholder="Mot de passe" />
+            <div class="modal-actions">
+                <button onclick="savePassword()" class="btn-primary">Enregistrer</button>
+                <button onclick="closeModal()" class="btn-secondary">Annuler</button>
+            </div>
+            <div id="modalError" class="error"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

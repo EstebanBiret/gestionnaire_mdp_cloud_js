@@ -1,0 +1,60 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::password-backups/*",
+        "arn:aws:s3:::password-backups"
+      ]
+    },
+    {
+      "Effect": "Deny",
+      "Action": [
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::password-backups/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueUrl"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:*:*:table/passwords",
+        "arn:aws:dynamodb:*:*:table/users",
+        "arn:aws:dynamodb:*:*:table/users/index/*",
+        "arn:aws:dynamodb:*:*:table/sessions"
+      ]
+    }
+  ]
+}
