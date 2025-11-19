@@ -1,18 +1,14 @@
 services:
-  # ============================
-  # LOCALSTACK
-  # ============================
   localstack:
     image: localstack/localstack:3.2
     container_name: localstack
     ports:
       - "4566:4566"
+      - "4571:4571"
     environment:
-      - SERVICES=s3,dynamodb,sqs,lambda,apigateway,iam,sts,cloudfront
+      - SERVICES=s3
       - DEBUG=1
       - AWS_DEFAULT_REGION=eu-west-3
-      - LAMBDA_EXECUTOR=docker
-      - LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT=30
     volumes:
       - "./localstack-data:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -21,54 +17,3 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-
-  # ============================
-  # OPEN TOFU (Infra as Code)
-  # ============================
-  tofu:
-    image: ghcr.io/opentofu/opentofu:latest
-    container_name: tofu_cli
-    working_dir: /iac
-    volumes:
-      - ./infra:/iac
-    depends_on:
-      localstack:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c", "tofu init && tofu apply -auto-approve"]
-
-  # ============================
-  # LAMBDA SETUP (awslocal)
-  # ============================
-  lambda_setup:
-    build:
-      context: ./localstack/lambda
-      dockerfile: dockerfile
-    container_name: lambda_setup
-    depends_on:
-      localstack:
-        condition: service_healthy
-      tofu:
-        condition: service_completed_successfully
-    working_dir: /workspace
-    volumes:
-      - ./localstack/lambda:/workspace/lambda
-      - ./infra:/workspace/infra
-      - ./lambdas:/workspace/lambdas
-    entrypoint: ["/bin/bash", "-c", "sed -i 's/\r$//' /workspace/lambda/setup_lambdas.sh && chmod +x /workspace/lambda/setup_lambdas.sh && /workspace/lambda/setup_lambdas.sh"]
-
-  # ============================
-  # FRONTEND UPLOAD TO S3
-  # ============================
-  frontend_setup:
-    image: amazon/aws-cli:latest
-    container_name: frontend_setup
-    depends_on:
-      tofu:
-        condition: service_completed_successfully
-    working_dir: /workspace
-    volumes:
-      - ./frontend:/workspace/frontend
-    entrypoint: ["/bin/sh", "-c", "aws --endpoint-url=http://localstack:4566 s3 sync /workspace/frontend s3://password-manager-frontend --region eu-west-3"]
-    environment:
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test

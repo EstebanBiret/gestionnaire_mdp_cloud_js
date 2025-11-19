@@ -1,3 +1,0 @@
-awscli==1.27.72
-awscli-local==0.22.2
-localstack-client
