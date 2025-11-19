@@ -18,7 +18,10 @@ provider "aws" {
   skip_requesting_account_id  = true
 
   endpoints {
-    s3 = var.endpoint
+    s3          = var.endpoint
+    apigateway  = var.endpoint
+    iam         = var.endpoint
+    lambda      = var.endpoint
   }
 }
 
