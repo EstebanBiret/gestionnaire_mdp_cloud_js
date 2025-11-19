@@ -1,6 +1,6 @@
 const { GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { docClient } = require('../shared/aws-clients');
-const { successResponse, errorResponse, sendLog, extractSessionId, validateSession } = require('../shared/utils');
+const { successResponse, errorResponse, sendLog, extractSessionId, validateSession } = require('../../shared/utils');
 
 exports.handler = async (event) => {
   try {

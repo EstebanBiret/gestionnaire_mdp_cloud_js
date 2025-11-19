@@ -44,15 +44,17 @@ foreach ($lambda in $selectedLambdas) {
         continue
     }
 
+    $itemsToZip = @()
+    $itemsToZip += (Get-ChildItem -Path $lambdaDir -Recurse | ForEach-Object { $_.FullName })
+
     if (Test-Path $sharedDir) {
-        Copy-Item -Path "$sharedDir\*" -Destination $lambdaDir -Recurse -Force
-        Write-Host "Shared folder copied to $lambdaDir"
+        $itemsToZip += (Get-ChildItem -Path $sharedDir -Recurse | ForEach-Object { $_.FullName })
     }
 
     $zipDir = Split-Path $zipPath -Parent
     if (-not (Test-Path $zipDir)) { New-Item -ItemType Directory -Path $zipDir | Out-Null }
 
-    Compress-Archive -Path "$lambdaDir\*" -DestinationPath $zipPath -Force
+    Compress-Archive -Path $itemsToZip -DestinationPath $zipPath -Force
 
     if (Test-Path $zipPath) {
         Write-Host "[ZIP CREATED] $zipPath"
