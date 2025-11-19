@@ -1,45 +1,69 @@
 terraform {
   required_providers {
     aws = {
-    source  = "hashicorp/aws"
-    version = "~> 4.0"
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
     }
   }
 }
 
 provider "aws" {
-region     = var.region
-access_key = var.access_key
-secret_key = var.secret_key
+  region     = var.region
+  access_key = var.access_key
+  secret_key = var.secret_key
 
-s3_use_path_style           = true
-skip_credentials_validation = true
-skip_metadata_api_check     = true
-skip_requesting_account_id  = true
+  s3_use_path_style           = true
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
 
   endpoints {
-  s3 = var.endpoint
+    s3 = var.endpoint
   }
 }
 
+# =====================
+# S3 Bucket
+# =====================
 resource "aws_s3_bucket" "frontend" {
-bucket = "app"
-acl    = "public-read"
+  bucket = var.s3_bucket
+}
 
-  website {
-  index_document = "index.html"
-  error_document = "index.html"
+# Bucket ACL
+resource "aws_s3_bucket_acl" "frontend_acl" {
+  bucket = aws_s3_bucket.frontend.id
+  acl    = "public-read"
+}
+
+# Website configuration
+resource "aws_s3_bucket_website_configuration" "frontend_website" {
+  bucket = aws_s3_bucket.frontend.id
+
+  index_document {
+    suffix = "index.html"
   }
+
+  error_document {
+    key = "index.html"
+  }
+}
+
+# CORS
+resource "aws_s3_bucket_cors_configuration" "frontend_cors" {
+  bucket = aws_s3_bucket.frontend.id
 
   cors_rule {
-  allowed_headers = ["*"]
-  allowed_methods = ["GET", "HEAD"]
-  allowed_origins = ["*"]
-  expose_headers  = ["ETag"]
-  max_age_seconds = 3000
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
   }
 }
 
+# =====================
+# Objects
+# =====================
 resource "aws_s3_object" "index" {
   bucket       = aws_s3_bucket.frontend.id
   key          = "index.html"
@@ -64,6 +88,9 @@ resource "aws_s3_object" "app" {
   content_type = "application/javascript"
 }
 
+# =====================
+# Output
+# =====================
 output "frontend_website_url" {
-  value = aws_s3_bucket.frontend.website_endpoint
+  value = "${var.endpoint}/${aws_s3_bucket.frontend.bucket}/index.html"
 }
