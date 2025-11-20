@@ -1,22 +1,40 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { successResponse, errorResponse, extractSessionId, validateSession } = require('../../shared/utils');
+
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    endpoint: process.env.DYNAMODB_ENDPOINT || undefined,
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+
 exports.handler = async (event) => {
-  try {
-    const session = { userId: "test-user" };
+    try {
+        const sessionId = extractSessionId(event);
 
-    // Données de test pour l'api
-    const passwords = [
-      { id: "1", site: "exemple.com", login: "user1", encryptedPassword: "xxxx", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: "2", site: "test.com", login: "user2", encryptedPassword: "yyyy", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ];
+        if (!sessionId) {
+            return errorResponse('Unauthorized', 401);
+        }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(passwords)
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Internal server error" })
-    };
-  }
+        const session = await validateSession(sessionId, docClient);
+        if (!session) {
+            return errorResponse('Invalid or expired session', 401);
+        }
+
+        const result = await docClient.send(
+            new QueryCommand({
+                TableName: process.env.TABLE_NAME || 'passwords',
+                KeyConditionExpression: 'userId = :userId',
+                ExpressionAttributeValues: {
+                    ':userId': session.userId,
+                },
+            })
+        );
+
+        return successResponse(result.Items || []);
+    } catch (error) {
+        console.error('Error in getAll passwords:', error);
+        return errorResponse('Internal server error', 500);
+    }
 };

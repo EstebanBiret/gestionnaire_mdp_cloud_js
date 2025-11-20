@@ -22,6 +22,7 @@ provider "aws" {
     apigateway  = var.endpoint
     iam         = var.endpoint
     lambda      = var.endpoint
+    dynamodb    = var.endpoint
   }
 }
 
@@ -90,6 +91,34 @@ resource "aws_s3_object" "app" {
   acl          = "public-read"
   content_type = "application/javascript"
 }
+
+resource "aws_dynamodb_table" "passwords" {
+  name         = "passwords"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  attribute {
+    name = "site"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "site-index"
+    hash_key        = "site"
+    projection_type = "ALL"
+  }
+
+  tags = {
+    Name        = "passwords-table"
+    Environment = "dev"
+  }
+}
+
 
 # =====================
 # Output
