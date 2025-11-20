@@ -1,7 +1,5 @@
-// Configuration de l'API
-const API_URL = 'http://localhost:4566/restapis/YOUR_API_ID/dev/_user_request_';
-// Note: Remplacer YOUR_API_ID par l'ID réel de votre API Gateway après le déploiement
-// Vous pouvez le récupérer avec: tofu output api_gateway_id
+import { API_URL } from "./config.js";
+console.log("API :", API_URL);
 
 let sessionId = null;
 let currentUser = null;
@@ -296,3 +294,16 @@ window.onclick = function(event) {
         closeModal();
     }
 }
+
+// Expose functions to global scope so inline `onclick` attributes in `index.html`
+// can call them even when this file is loaded as an ES module.
+window.login = login;
+window.register = register;
+window.showRegister = showRegister;
+window.showLogin = showLogin;
+window.logout = logout;
+window.showAddModal = showAddModal;
+window.closeModal = closeModal;
+window.savePassword = savePassword;
+window.editPassword = editPassword;
+window.deletePassword = deletePassword;
