@@ -22,6 +22,7 @@ $lambdas = @(
     @{ Name = "getAll";   Path = "passwords/getAll" }
     @{ Name = "register"; Path = "auth/register" }
     @{ Name = "logout";   Path = "auth/logout" }
+    @{ Name = "login";    Path = "auth/login" }
 )
 
 foreach ($lambda in $lambdas) {
