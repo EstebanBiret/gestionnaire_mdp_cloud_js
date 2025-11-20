@@ -4,7 +4,6 @@ services:
     container_name: localstack
     ports:
       - "4566:4566"
-      - "4571:4571"
     environment:
       - SERVICES=s3,apigateway,iam,lambda, dynamodb
       - DEBUG=1

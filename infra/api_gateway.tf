@@ -1,19 +1,16 @@
-# =====================
-# API Gateway
-# =====================
 resource "aws_api_gateway_rest_api" "password_api" {
   name = "password-api"
 }
 
-# Resource GET & POST password
 resource "aws_api_gateway_resource" "passwords" {
   rest_api_id = aws_api_gateway_rest_api.password_api.id
   parent_id   = aws_api_gateway_rest_api.password_api.root_resource_id
   path_part   = "passwords"
 }
 
-
+# -------------------------------
 # GET /passwords
+# -------------------------------
 resource "aws_api_gateway_method" "get_passwords" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.passwords.id
@@ -30,7 +27,9 @@ resource "aws_api_gateway_integration" "get_passwords_integration" {
   uri                     = aws_lambda_function.getAll.invoke_arn
 }
 
+# -------------------------------
 # POST /passwords
+# -------------------------------
 resource "aws_api_gateway_method" "post_passwords" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.passwords.id
@@ -55,9 +54,4 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   ]
   rest_api_id = aws_api_gateway_rest_api.password_api.id
   stage_name  = "dev"
-}
-
-# Output
-output "api_url" {
-  value = aws_api_gateway_deployment.api_deployment.invoke_url
 }

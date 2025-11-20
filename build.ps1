@@ -1,3 +1,6 @@
+# powershell
+$ErrorActionPreference = "Stop"
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Write-Host "ScriptDir: $scriptDir"
 
@@ -38,7 +41,6 @@ $selectedLambdas = @(
     @{ Name = "update"; Path = "passwords/update" }
 )
 
-# Installer toutes les dépendances en premier
 foreach ($lambda in $selectedLambdas) {
     $lambdaDir = Join-Path $lambdaRoot $lambda.Path
 
@@ -49,17 +51,23 @@ foreach ($lambda in $selectedLambdas) {
 
     Push-Location $lambdaDir
     if (Test-Path "package.json") {
-        Write-Host "[NPM INSTALL] Installing dependencies for $($lambda.Name)"
-        npm install --omit=dev
+        Write-Host "[NPM] Installing production dependencies for $($lambda.Name)"
+        try {
+            if (Test-Path "package-lock.json") {
+                npm ci --omit=dev --no-audit --no-fund
+            } else {
+                npm install --omit=dev --no-audit --no-fund
+            }
+        } catch {
+            Write-Warning "[NPM FAILED] $_"
+        }
     }
     Pop-Location
 }
 
-# Attendre que tous les processus npm soient terminés
 Write-Host "Waiting for npm processes to release file locks..."
 Start-Sleep -Seconds 5
 
-# Packager toutes les lambdas
 foreach ($lambda in $selectedLambdas) {
     $lambdaDir = Join-Path $lambdaRoot $lambda.Path
     $zipPath   = Join-Path $dist "$($lambda.Name).zip"
@@ -84,26 +92,37 @@ foreach ($lambda in $selectedLambdas) {
         Copy-Item -Path (Join-Path $sharedDir '*') -Destination $sharedTarget -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    Start-Sleep -Seconds 2
+    Write-Host "[CLEAN] Removing TypeScript artefacts"
+    Get-ChildItem -Path $stagingDir -Recurse -Include *.ts,*.d.ts,*.map -File -ErrorAction SilentlyContinue |
+            ForEach-Object { Remove-Item -Force -ErrorAction SilentlyContinue $_.FullName }
 
-    try {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $zipPath, [System.IO.Compression.CompressionLevel]::Fastest, $false)
-        Write-Host "[ZIP CREATED] $zipPath"
-    } catch {
-        Write-Warning "Failed with .NET method for $($lambda.Name), retrying with Compress-Archive..."
-        Start-Sleep -Seconds 1
-        Compress-Archive -Path (Join-Path $stagingDir '*') -DestinationPath $zipPath -Force
+    $maxAttempts = 3
+    $success = $false
+    for ($i = 1; $i -le $maxAttempts; $i++) {
+        try {
+            Write-Host "[ZIP] Attempt $i for $($lambda.Name)"
+            Push-Location $stagingDir
+            Compress-Archive -Path * -DestinationPath $zipPath -Force
+            Pop-Location
 
-        if (Test-Path $zipPath) {
-            Write-Host "[ZIP CREATED] $zipPath"
-        } else {
-            Write-Warning "[ZIP FAILED] $zipPath"
+            if (Test-Path $zipPath) {
+                Write-Host "[ZIP CREATED] $zipPath"
+                $success = $true
+                break
+            } else {
+                Write-Warning "[ZIP FAILED] $zipPath (not created)"
+            }
+        } catch {
+            Write-Warning "[ZIP ERROR] Attempt $i failed: $_"
+            Start-Sleep -Seconds 1
         }
     }
 
-    Start-Sleep -Milliseconds 500
     Remove-Item -Recurse -Force $stagingDir -ErrorAction SilentlyContinue
+
+    if (-not $success) {
+        Write-Warning "[ZIP FAILED] $zipPath after $maxAttempts attempts"
+    }
 }
 
 Write-Host "[DONE] Selected Lambdas packaged!"
