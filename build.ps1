@@ -28,7 +28,8 @@ Write-Host "Shared folder: $sharedDir"
 
 $selectedLambdas = @(
     @{ Name = "create"; Path = "passwords/create" },
-    @{ Name = "getAll"; Path = "passwords/getAll" }
+    @{ Name = "getAll"; Path = "passwords/getAll" },
+    @{ Name = "register"; Path = "auth/register" }
 )
 
 
