@@ -3,7 +3,7 @@ resource "aws_lambda_function" "getAll" {
 
   function_name = "getAll"
   runtime       = "nodejs18.x"
-  handler       = "handler.handler"
+  handler       = "passwords/getAll/handler.handler"
   filename      = "${local.dist_path}/getAll.zip"
   role          = aws_iam_role.lambda_exec.arn
 }
@@ -13,7 +13,7 @@ resource "aws_lambda_function" "create" {
 
   function_name = "create"
   runtime       = "nodejs18.x"
-  handler       = "handler.handler"
+  handler       = "passwords/create/handler.handler"
   filename      = "${local.dist_path}/create.zip"
   role          = aws_iam_role.lambda_exec.arn
 }
@@ -22,7 +22,16 @@ resource "aws_lambda_function" "register" {
   depends_on    = [null_resource.build_lambdas]  
   function_name = "register"
   runtime       = "nodejs18.x"  
-  handler       = "handler.handler"  
-  filename      = "${path.module}/../dist/register.zip"  
+  handler       = "auth/register/handler.handler" 
+  filename      = "${local.dist_path}/../dist/register.zip"  
+  role          = aws_iam_role.lambda_exec.arn
+}
+
+resource "aws_lambda_function" "logout" {
+  depends_on    = [null_resource.build_lambdas]  
+  function_name = "logout"
+  runtime       = "nodejs18.x"  
+  handler       = "auth/logout/handler.handler" 
+  filename      = "${local.dist_path}/../dist/logout.zip"  
   role          = aws_iam_role.lambda_exec.arn
 }

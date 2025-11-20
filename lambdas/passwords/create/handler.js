@@ -19,9 +19,6 @@ exports.handler = async (event) => {
       updatedAt: new Date().toISOString()
     };
 
-    console.log("Event:", event);
-    console.log("Parsed body:", body);
-
     return {
       statusCode: 201,
       body: JSON.stringify(password)

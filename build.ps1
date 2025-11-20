@@ -1,67 +1,48 @@
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-Write-Host "ScriptDir: $scriptDir"
+$root = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$dist = Join-Path $root "dist"
+$lambdaRoot = Join-Path $root "lambdas"
+$shared = Join-Path $lambdaRoot "shared"
 
+if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
+New-Item -ItemType Directory $dist | Out-Null
 
-$projectRoot = $scriptDir
-Write-Host "ProjectRoot: $projectRoot"
+# Créer un dossier temporaire pour shared
+$tmpShared = Join-Path $root "tmp_shared"
+if (Test-Path $tmpShared) { Remove-Item -Recurse -Force $tmpShared }
+Copy-Item $shared $tmpShared -Recurse
 
-$dist = Join-Path $projectRoot "dist"
-Write-Host "Dist folder will be created at: $dist"
+# Zipper shared une fois
+$sharedZip = Join-Path $dist "shared.zip"
+Compress-Archive -Path "$tmpShared/*" -DestinationPath $sharedZip -Force
 
+Remove-Item -Recurse -Force $tmpShared
 
-if (Test-Path $dist) {
-    Write-Host "Cleaning existing dist folder at $dist"
-    Remove-Item -Recurse -Force $dist
-}
-
-Write-Host "Creating dist folder at $dist"
-New-Item -ItemType Directory -Path $dist | Out-Null
-
-
-$lambdaRoot = Join-Path $projectRoot "lambdas"
-Write-Host "LambdaRoot: $lambdaRoot"
-
-
-$sharedDir = Join-Path $lambdaRoot "shared"
-Write-Host "Shared folder: $sharedDir"
-
-
-$selectedLambdas = @(
-    @{ Name = "create"; Path = "passwords/create" },
-    @{ Name = "getAll"; Path = "passwords/getAll" },
+$lambdas = @(
+    @{ Name = "create";   Path = "passwords/create" }
+    @{ Name = "getAll";   Path = "passwords/getAll" }
     @{ Name = "register"; Path = "auth/register" }
+    @{ Name = "logout";   Path = "auth/logout" }
 )
 
+foreach ($lambda in $lambdas) {
 
-foreach ($lambda in $selectedLambdas) {
+    $lambdaPath = Join-Path $lambdaRoot $lambda.Path
+    $zipOut = Join-Path $dist "$($lambda.Name).zip"
 
-    $lambdaDir = Join-Path $lambdaRoot $lambda.Path
-    $zipPath   = Join-Path $dist "$($lambda.Name).zip"
+    # Copier shared.zip comme base
+    Copy-Item $sharedZip $zipOut
 
-    Write-Host "[PACKAGING] $($lambda.Name).zip from $lambdaDir"
+    # Injecter le handler dedans
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::Open($zipOut, 'Update')
 
-    if (-not (Test-Path $lambdaDir)) {
-        Write-Warning "Lambda path '$lambdaDir' does not exist, skipping."
-        continue
+    Get-ChildItem -Recurse $lambdaPath | ForEach-Object {
+        $entryPath = $_.FullName.Substring($lambdaRoot.Length + 1)
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
     }
 
-    $itemsToZip = @()
-    $itemsToZip += (Get-ChildItem -Path $lambdaDir -Recurse | ForEach-Object { $_.FullName })
-
-    if (Test-Path $sharedDir) {
-        $itemsToZip += (Get-ChildItem -Path $sharedDir -Recurse | ForEach-Object { $_.FullName })
-    }
-
-    $zipDir = Split-Path $zipPath -Parent
-    if (-not (Test-Path $zipDir)) { New-Item -ItemType Directory -Path $zipDir | Out-Null }
-
-    Compress-Archive -Path $itemsToZip -DestinationPath $zipPath -Force
-
-    if (Test-Path $zipPath) {
-        Write-Host "[ZIP CREATED] $zipPath"
-    } else {
-        Write-Warning "[ZIP FAILED] $zipPath"
-    }
+    $zip.Dispose()
+    Write-Host "[ZIP] $zipOut created"
 }
 
-Write-Host "[DONE] Selected Lambdas packaged!"
+Write-Host "Build done!"
