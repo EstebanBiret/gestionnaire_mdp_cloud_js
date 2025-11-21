@@ -45,5 +45,4 @@ foreach ($lambda in $lambdas) {
     Write-Host "[ZIP] $zipOut créé"
 }
 
-
 Write-Host "Build done!"

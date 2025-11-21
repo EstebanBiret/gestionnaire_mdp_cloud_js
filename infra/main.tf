@@ -64,11 +64,10 @@ resource "aws_s3_object" "app" {
   content_type = "application/javascript"
 }
 
-
 resource "aws_s3_object" "config" {
   bucket       = aws_s3_bucket.frontend.id
   key          = "config.js"
-  content      = <<EOF
+  content = <<EOF
 export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/dev/_user_request_";
 EOF
   acl          = "public-read"
