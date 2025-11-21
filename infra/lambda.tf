@@ -18,6 +18,17 @@ resource "aws_lambda_function" "create" {
   role          = aws_iam_role.lambda_exec.arn
 }
 
+resource "aws_lambda_function" "delete" {
+  depends_on = [null_resource.build_lambdas]
+
+  function_name = "delete"
+  runtime       = "nodejs18.x"
+  handler       = "passwords/delete/handler.handler"
+  filename      = "${local.dist_path}/delete.zip"
+  role          = aws_iam_role.lambda_exec.arn
+}
+
+
 resource "aws_lambda_function" "register" {
   depends_on    = [null_resource.build_lambdas]  
   function_name = "register"

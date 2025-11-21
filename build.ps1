@@ -20,6 +20,7 @@ Remove-Item -Recurse -Force $tmpShared
 $lambdas = @(
     @{ Name = "create";   Path = "passwords/create" }
     @{ Name = "getAll";   Path = "passwords/getAll" }
+    @{ Name = "delete";   Path = "passwords/delete" }
     @{ Name = "register"; Path = "auth/register" }
     @{ Name = "logout";   Path = "auth/logout" }
     @{ Name = "login";    Path = "auth/login" }

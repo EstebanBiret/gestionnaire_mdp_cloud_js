@@ -9,6 +9,13 @@ resource "aws_api_gateway_resource" "passwords" {
   path_part   = "passwords"
 }
 
+# Ressource /passwords/{id}
+resource "aws_api_gateway_resource" "password_by_id" {
+  rest_api_id = aws_api_gateway_rest_api.password_api.id
+  parent_id   = aws_api_gateway_resource.passwords.id
+  path_part   = "{id}"
+}
+
 # Ressource /auth
 resource "aws_api_gateway_resource" "auth" {
   rest_api_id = aws_api_gateway_rest_api.password_api.id
@@ -75,6 +82,22 @@ resource "aws_api_gateway_integration" "post_passwords_integration" {
   uri                     = aws_lambda_function.create.invoke_arn
 }
 
+# DELETE /passwords/{id}
+resource "aws_api_gateway_method" "delete_password" {
+  rest_api_id   = aws_api_gateway_rest_api.password_api.id
+  resource_id   = aws_api_gateway_resource.password_by_id.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "delete_password_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.password_api.id
+  resource_id             = aws_api_gateway_resource.password_by_id.id
+  http_method             = aws_api_gateway_method.delete_password.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.delete.invoke_arn
+}
 
 # POST /auth/register
 resource "aws_api_gateway_method" "post_auth_register" {
