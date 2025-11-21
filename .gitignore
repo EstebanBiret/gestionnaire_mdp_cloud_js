@@ -10,4 +10,11 @@
 /infra/terraform.tfstate.backup
 
 # Node modules
-/node_modules
+node_modules/
+package-lock.json
+
+# ZIP output
+/dist/
+
+# Fichier de config généré par Tofu
+/frontend/config.js

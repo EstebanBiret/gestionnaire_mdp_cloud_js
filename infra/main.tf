@@ -1,27 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
-provider "aws" {
-  region     = var.region
-  access_key = var.access_key
-  secret_key = var.secret_key
-
-  s3_use_path_style           = true
-  skip_credentials_validation = true
-  skip_metadata_api_check     = true
-  skip_requesting_account_id  = true
-
-  endpoints {
-    s3 = var.endpoint
-  }
-}
-
 # =====================
 # S3 Bucket
 # =====================
@@ -88,9 +64,27 @@ resource "aws_s3_object" "app" {
   content_type = "application/javascript"
 }
 
-# =====================
-# Output
-# =====================
-output "frontend_website_url" {
-  value = "${var.endpoint}/${aws_s3_bucket.frontend.bucket}/index.html"
+resource "aws_s3_object" "config" {
+  bucket       = aws_s3_bucket.frontend.id
+  key          = "config.js"
+  content = <<EOF
+export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/dev/_user_request_";
+EOF
+  acl          = "public-read"
+  content_type = "application/javascript"
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment
+  ]
+}
+
+resource "local_file" "frontend_config" {
+  content = <<EOF
+export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/dev/_user_request_";
+EOF
+
+  filename = "${var.frontend_path}/config.js"
+
+  depends_on = [
+    aws_api_gateway_deployment.api_deployment
+  ]
 }

@@ -4,9 +4,8 @@ services:
     container_name: localstack
     ports:
       - "4566:4566"
-      - "4571:4571"
     environment:
-      - SERVICES=s3
+      - SERVICES=s3,apigateway,iam,lambda
       - DEBUG=1
       - AWS_DEFAULT_REGION=eu-west-3
     volumes:

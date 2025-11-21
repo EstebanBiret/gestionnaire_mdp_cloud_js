@@ -17,3 +17,11 @@ variable "endpoint" {
 variable "s3_bucket" {
   default = "app"
 }
+
+variable "project_root" {
+  default = "../"
+}
+
+variable "frontend_path" {
+  default = "../frontend"
+}

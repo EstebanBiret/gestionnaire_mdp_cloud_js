@@ -1,7 +1,5 @@
-// Configuration de l'API
-const API_URL = 'http://localhost:4566/restapis/YOUR_API_ID/dev/_user_request_';
-// Note: Remplacer YOUR_API_ID par l'ID réel de votre API Gateway après le déploiement
-// Vous pouvez le récupérer avec: tofu output api_gateway_id
+import { API_URL } from "./config.js";
+console.log("API :", API_URL);
 
 let sessionId = null;
 let currentUser = null;
@@ -60,8 +58,9 @@ async function login() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ login: username, password })
         });
-        
+
         const data = await response.json();
+        console.log('Login response:', data);
         
         if (!response.ok) {
             throw new Error(data.error || 'Erreur de connexion');
@@ -122,12 +121,14 @@ async function register() {
 
 async function logout() {
     try {
-        await fetch(`${API_URL}/auth/logout`, {
+        const response = await fetch(`${API_URL}/auth/logout`, {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${sessionId}`
             }
         });
+    const data = await response.json();
+    console.log('Logout response:', data);
     } catch (error) {
         console.error('Erreur lors de la déconnexion:', error);
     }
@@ -247,8 +248,10 @@ async function savePassword() {
             body: JSON.stringify({ site, login, encryptedPassword })
         });
         
+        const data = await response.json();
+        console.log("Réponse de l'API:", data);
+
         if (!response.ok) {
-            const data = await response.json();
             throw new Error(data.error || 'Erreur lors de l\'enregistrement');
         }
         
@@ -271,6 +274,9 @@ async function deletePassword(id) {
                 'Authorization': `Bearer ${sessionId}`
             }
         });
+
+        const data = await response.json();
+        console.log("Réponse de l'API:", data);
         
         if (!response.ok) {
             throw new Error('Erreur lors de la suppression');
@@ -296,3 +302,16 @@ window.onclick = function(event) {
         closeModal();
     }
 }
+
+// Expose functions to global scope so inline `onclick` attributes in `index.html`
+// can call them even when this file is loaded as an ES module.
+window.login = login;
+window.register = register;
+window.showRegister = showRegister;
+window.showLogin = showLogin;
+window.logout = logout;
+window.showAddModal = showAddModal;
+window.closeModal = closeModal;
+window.savePassword = savePassword;
+window.editPassword = editPassword;
+window.deletePassword = deletePassword;
