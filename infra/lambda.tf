@@ -1,33 +1,10 @@
-resource "aws_iam_role_policy" "lambda_dynamodb" {
-  name = "lambda_dynamodb_policy"
-  role = aws_iam_role.lambda_exec.id
-
-  policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:PutItem",
-        "dynamodb:GetItem",
-        "dynamodb:Scan",
-        "dynamodb:Query"
-      ],
-      "Resource": "${aws_dynamodb_table.passwords.arn}"
-    }
-  ]
-}
-POLICY
-}
-
-
 resource "aws_lambda_function" "getAll" {
-  depends_on    = [null_resource.build_lambdas]  
+  depends_on = [null_resource.build_lambdas]
+
   function_name = "getAll"
   runtime       = "nodejs18.x"
-  handler       = "handler.handler"
-  filename      = "${path.module}/../dist/getAll.zip"
+  handler       = "passwords/getAll/handler.handler"
+  filename      = "${local.dist_path}/getAll.zip"
   role          = aws_iam_role.lambda_exec.arn
 
   environment {
@@ -39,9 +16,12 @@ resource "aws_lambda_function" "getAll" {
 }
 
 resource "aws_lambda_function" "create" {
-  depends_on    = [null_resource.build_lambdas]
+  depends_on = [null_resource.build_lambdas]
+
   function_name = "create"
   runtime       = "nodejs18.x"
+  handler       = "passwords/create/handler.handler"
+  filename      = "${local.dist_path}/create.zip"
   handler       = "handler.handler"
   filename      = "${path.module}/../dist/create.zip"
   role          = aws_iam_role.lambda_exec.arn
@@ -84,4 +64,31 @@ resource "aws_lambda_function" "update" {
       DYNAMODB_ENDPOINT = var.endpoint
     }
   }
+}
+
+resource "aws_lambda_function" "register" {
+  depends_on    = [null_resource.build_lambdas]
+  function_name = "register"
+  runtime       = "nodejs18.x"
+  handler       = "auth/register/handler.handler"
+  filename      = "${local.dist_path}/register.zip"
+  role          = aws_iam_role.lambda_exec.arn
+}
+
+resource "aws_lambda_function" "logout" {
+  depends_on    = [null_resource.build_lambdas]
+  function_name = "logout"
+  runtime       = "nodejs18.x"
+  handler       = "auth/logout/handler.handler"
+  filename      = "${local.dist_path}/logout.zip"
+  role          = aws_iam_role.lambda_exec.arn
+}
+
+resource "aws_lambda_function" "login" {
+  depends_on    = [null_resource.build_lambdas]
+  function_name = "login"
+  runtime       = "nodejs18.x"
+  handler       = "auth/login/handler.handler"
+  filename      = "${local.dist_path}/login.zip"
+  role          = aws_iam_role.lambda_exec.arn
 }

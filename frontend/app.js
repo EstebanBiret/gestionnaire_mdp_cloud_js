@@ -58,8 +58,9 @@ async function login() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ login: username, password })
         });
-        
+
         const data = await response.json();
+        console.log('Login response:', data);
         
         if (!response.ok) {
             throw new Error(data.error || 'Erreur de connexion');
@@ -120,12 +121,14 @@ async function register() {
 
 async function logout() {
     try {
-        await fetch(`${API_URL}/auth/logout`, {
+        const response = await fetch(`${API_URL}/auth/logout`, {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${sessionId}`
             }
         });
+    const data = await response.json();
+    console.log('Logout response:', data);
     } catch (error) {
         console.error('Erreur lors de la déconnexion:', error);
     }
@@ -245,8 +248,10 @@ async function savePassword() {
             body: JSON.stringify({ site, login, encryptedPassword })
         });
         
+        const data = await response.json();
+        console.log("Réponse de l'API:", data);
+
         if (!response.ok) {
-            const data = await response.json();
             throw new Error(data.error || 'Erreur lors de l\'enregistrement');
         }
         
