@@ -43,6 +43,7 @@ body {
     font-size: 22px;
 }
 
+input[type="email"],
 input[type="text"],
 input[type="password"] {
     width: 100%;
@@ -54,6 +55,7 @@ input[type="password"] {
     transition: border-color 0.3s;
 }
 
+input[type="email"]:focus,
 input[type="text"]:focus,
 input[type="password"]:focus {
     outline: none;
@@ -268,4 +270,22 @@ button:hover {
 .empty-state p {
     font-size: 16px;
     opacity: 0.9;
+}
+
+.password-hidden {
+    letter-spacing: 2px;
+}
+
+.btn-eye,
+.btn-copy {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 8px;
+}
+
+.btn-eye:hover,
+.btn-copy:hover {
+    opacity: 0.7;
 }
