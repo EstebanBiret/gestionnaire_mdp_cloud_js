@@ -50,7 +50,7 @@ export function displayPasswords(passwords) {
                 <strong>Mot de passe :</strong>
                 <span id="pwd-value-${pwd.id}" class="password-hidden">••••••••</span>
 
-                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">👁</button>
+                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">👁️</button>
                 <button class="btn-copy" onclick="copyPassword('${decrypted}')">📋</button>
             </p>
 

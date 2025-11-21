@@ -19,8 +19,8 @@ export function initLoginPage() {
 }
 
 export async function login() {
-    const username = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
+    const username = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
     if (!username || !password) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
@@ -50,8 +50,8 @@ export async function login() {
 }
 
 export async function register() {
-    const username = document.getElementById("registerUsername").value;
-    const password = document.getElementById("registerPassword").value;
+    const username = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
     if (!username || !password) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
