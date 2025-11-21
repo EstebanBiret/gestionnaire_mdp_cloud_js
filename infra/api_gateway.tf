@@ -99,6 +99,23 @@ resource "aws_api_gateway_integration" "delete_password_integration" {
   uri                     = aws_lambda_function.delete.invoke_arn
 }
 
+# PUT /passwords/{id}
+resource "aws_api_gateway_method" "update_password" {
+  rest_api_id   = aws_api_gateway_rest_api.password_api.id
+  resource_id   = aws_api_gateway_resource.password_by_id.id
+  http_method   = "PUT"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "update_password_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.password_api.id
+  resource_id             = aws_api_gateway_resource.password_by_id.id
+  http_method             = aws_api_gateway_method.update_password.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.update.invoke_arn
+}
+
 # POST /auth/register
 resource "aws_api_gateway_method" "post_auth_register" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
@@ -155,6 +172,8 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_integration.get_passwords_integration,
     aws_api_gateway_integration.post_passwords_integration,
+    aws_api_gateway_integration.delete_password_integration,
+    aws_api_gateway_integration.update_password_integration,
     aws_api_gateway_integration.post_auth_register_integration,
     aws_api_gateway_integration.post_auth_logout_integration,
     aws_api_gateway_integration.post_auth_login_integration

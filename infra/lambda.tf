@@ -28,6 +28,15 @@ resource "aws_lambda_function" "delete" {
   role          = aws_iam_role.lambda_exec.arn
 }
 
+resource "aws_lambda_function" "update" {
+  depends_on = [null_resource.build_lambdas]
+
+  function_name = "update"
+  runtime       = "nodejs18.x"
+  handler       = "passwords/update/handler.handler"
+  filename      = "${local.dist_path}/update.zip"
+  role          = aws_iam_role.lambda_exec.arn
+}
 
 resource "aws_lambda_function" "register" {
   depends_on    = [null_resource.build_lambdas]  
