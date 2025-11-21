@@ -1,8 +1,8 @@
 {
-  "name": "getall",
+  "name": "delete",
   "version": "1.0.0",
   "description": "",
-  "main": "handler.js",
+  "main": "../passwords/delete/handler.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +12,8 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.936.0",
-    "@aws-sdk/lib-dynamodb": "^3.936.0"
+    "@aws-sdk/lib-dynamodb": "^3.936.0",
+    "aws-sdk": "^2.1691.0",
+    "bcryptjs": "^2.4.3"
   }
 }

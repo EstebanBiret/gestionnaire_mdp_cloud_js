@@ -18,34 +18,32 @@ Compress-Archive -Path "$tmpShared/*" -DestinationPath $sharedZip -Force
 Remove-Item -Recurse -Force $tmpShared
 
 $lambdas = @(
-    @{ Name = "create";   Path = "passwords/create" }
-    @{ Name = "getAll";   Path = "passwords/getAll" }
-    @{ Name = "delete"; Path = "passwords/delete" },
-    @{ Name = "update"; Path = "passwords/update" }
-    @{ Name = "register"; Path = "auth/register" }
-    @{ Name = "logout";   Path = "auth/logout" }
-    @{ Name = "login";    Path = "auth/login" }
+    @{ Name = "create";   Path = "passwords/create";   Include = @("handler.js") }
+    @{ Name = "getAll";   Path = "passwords/getAll";   Include = @("handler.js") }
+    @{ Name = "delete";   Path = "passwords/delete";   Include = @("handler.js") }
+    @{ Name = "update";   Path = "passwords/update";   Include = @("handler.js") }
+    @{ Name = "register"; Path = "auth/register";      Include = @("handler.js") }
+    @{ Name = "logout";   Path = "auth/logout";        Include = @("handler.js") }
+    @{ Name = "login";    Path = "auth/login";         Include = @("handler.js") }
+    @{ Name = "authorizer"; Path = "auth/authorizer";  Include = @("handler.js") }
 )
 
 foreach ($lambda in $lambdas) {
-
     $lambdaPath = Join-Path $lambdaRoot $lambda.Path
     $zipOut = Join-Path $dist "$($lambda.Name).zip"
-
-    # Copier shared.zip comme base
     Copy-Item $sharedZip $zipOut
-
-    # Injecter le handler dedans
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [System.IO.Compression.ZipFile]::Open($zipOut, 'Update')
 
-    Get-ChildItem -Recurse $lambdaPath | ForEach-Object {
-        $entryPath = $_.FullName.Substring($lambdaRoot.Length + 1)
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
+    foreach ($pattern in $lambda.Include) {
+        Get-ChildItem -Path $lambdaPath -Filter $pattern -Recurse | ForEach-Object {
+            $entryPath = $_.FullName.Substring($lambdaRoot.Length + 1)
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
+        }
     }
 
     $zip.Dispose()
-    Write-Host "[ZIP] $zipOut created"
+    Write-Host "[ZIP] $zipOut créé"
 }
+
 
 Write-Host "Build done!"

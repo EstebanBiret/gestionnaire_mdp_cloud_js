@@ -22,8 +22,6 @@ resource "aws_lambda_function" "create" {
   runtime       = "nodejs18.x"
   handler       = "passwords/create/handler.handler"
   filename      = "${local.dist_path}/create.zip"
-  handler       = "handler.handler"
-  filename      = "${path.module}/../dist/create.zip"
   role          = aws_iam_role.lambda_exec.arn
 
   environment {
@@ -73,6 +71,12 @@ resource "aws_lambda_function" "register" {
   handler       = "auth/register/handler.handler"
   filename      = "${local.dist_path}/register.zip"
   role          = aws_iam_role.lambda_exec.arn
+  environment {
+    variables = {
+      USERS_TABLE       = aws_dynamodb_table.users.name
+      DYNAMODB_ENDPOINT = var.endpoint
+    }
+  }
 }
 
 resource "aws_lambda_function" "logout" {
@@ -82,6 +86,12 @@ resource "aws_lambda_function" "logout" {
   handler       = "auth/logout/handler.handler"
   filename      = "${local.dist_path}/logout.zip"
   role          = aws_iam_role.lambda_exec.arn
+  environment {
+    variables = {
+      USERS_TABLE       = aws_dynamodb_table.users.name
+      DYNAMODB_ENDPOINT = var.endpoint
+    }
+  }
 }
 
 resource "aws_lambda_function" "login" {
@@ -91,4 +101,26 @@ resource "aws_lambda_function" "login" {
   handler       = "auth/login/handler.handler"
   filename      = "${local.dist_path}/login.zip"
   role          = aws_iam_role.lambda_exec.arn
+
+  environment {
+    variables = {
+      USERS_TABLE       = aws_dynamodb_table.users.name
+      DYNAMODB_ENDPOINT = var.endpoint
+    }
+  }
+}
+
+resource "aws_lambda_function" "authorizer" {
+  depends_on    = [null_resource.build_lambdas]
+  function_name = "authorizer"
+  runtime       = "nodejs18.x"
+  handler       = "auth/authorizer/handler.handler"
+  filename      = "${local.dist_path}/authorizer.zip"
+  role          = aws_iam_role.lambda_exec.arn
+
+  environment {
+    variables = {
+      USERS_TABLE = aws_dynamodb_table.users.name
+    }
+  }
 }
