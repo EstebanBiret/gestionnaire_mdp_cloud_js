@@ -9,15 +9,6 @@ export function getCurrentUser() {
     return JSON.parse(localStorage.getItem("currentUser") || "null");
 }
 
-export function initLoginPage() {
-    const sessionId = getSessionId();
-    const currentUser = getCurrentUser();
-
-    if (sessionId && currentUser) {
-        window.location.href = "index.html";
-    }
-}
-
 export async function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;

@@ -1,3 +1,11 @@
+<script>
+    const s = localStorage.getItem("sessionId");
+    const u = localStorage.getItem("currentUser");
+    if (s && u) {
+        window.location.replace("index.html");
+    }
+</script>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
