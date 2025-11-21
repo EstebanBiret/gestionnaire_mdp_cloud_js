@@ -1,3 +1,11 @@
+<script>
+    const s = localStorage.getItem("sessionId");
+    const u = localStorage.getItem("currentUser");
+    if (s && u) {
+        window.location.replace("index.html");
+    }
+</script>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -16,6 +24,8 @@
             <div id="registerForm">
                 <h2>Inscription</h2>
                 <input type="email" id="email" placeholder="Email" />
+                <input type="text" id="firstname" placeholder="Prénom" />
+                <input type="text" id="lastname" placeholder="Nom" />
                 <input type="password" id="password" placeholder="Mot de passe (min 8 caractères)" />
                 <button onclick="register()">S'inscrire</button>
                 <p class="switch-link">
