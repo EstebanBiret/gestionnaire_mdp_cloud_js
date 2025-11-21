@@ -12,10 +12,10 @@ exports.handler = async (event) => {
         console.log("EVENT:", event);
 
         const body = event.body ? JSON.parse(event.body) : {};
-        const { username, email, password } = body;
+        const { email, password } = body;
 
         // Validation des champs
-        if (!username || !email || !password) {
+        if (!email || !password) {
             return {
                 statusCode: 400,
                 headers: {
@@ -58,7 +58,6 @@ exports.handler = async (event) => {
 
         const user = {
             userId,
-            username,
             email,
             password: hashedPassword,
             createdAt: now,

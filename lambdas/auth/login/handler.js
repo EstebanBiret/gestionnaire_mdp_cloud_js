@@ -62,7 +62,6 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 sessionToken,
                 userId: user.userId,
-                username: user.username,
                 email: user.email,
                 expiresAt: sessionExpiry
             }),
