@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - Gestionnaire de MDP</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="registerPage" class="page">
+    <div class="container">
+        <div class="card">
+            <h1>🔐 Gestionnaire de Mots de Passe</h1>
+
+            <div id="registerForm">
+                <h2>Inscription</h2>
+                <input type="email" id="registerUsername" placeholder="Email" />
+                <input type="password" id="registerPassword" placeholder="Mot de passe (min 8 caractères)" />
+                <button onclick="register()">S'inscrire</button>
+                <p class="switch-link">
+                    Déjà un compte ? <a href="login.html">Se connecter</a>
+                </p>
+            </div>
+
+            <div id="authError" class="error"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { register } from "./js/auth.js";
+    window.register = register;
+</script>
+
+</body>
+</html>

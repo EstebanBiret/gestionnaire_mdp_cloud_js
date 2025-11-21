@@ -274,6 +274,9 @@ async function deletePassword(id) {
                 'Authorization': `Bearer ${sessionId}`
             }
         });
+
+        const data = await response.json();
+        console.log("Réponse de l'API:", data);
         
         if (!response.ok) {
             throw new Error('Erreur lors de la suppression');

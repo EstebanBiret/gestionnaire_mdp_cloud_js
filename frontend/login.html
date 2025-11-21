@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Gestionnaire de MDP</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loginPage" class="page">
+    <div class="container">
+        <div class="card">
+            <h1>🔐 Gestionnaire de Mots de Passe</h1>
+            <div id="loginForm">
+                <h2>Connexion</h2>
+                <input type="email" id="loginEmail" placeholder="Email" />
+                <input type="password" id="loginPassword" placeholder="Mot de passe" />
+                <button onclick="login()">Se connecter</button>
+                <p class="switch-link">
+                    Pas de compte ? <a href="register.html">S'inscrire</a>
+                </p>
+            </div>
+            <div id="authError" class="error"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initLoginPage, login } from "./js/auth.js";
+    window.login = login;
+    initLoginPage();
+</script>
+
+</body>
+</html>

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const { GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { docClient } = require('../shared/aws-clients');
 const { successResponse, errorResponse, sendLog, extractSessionId, validateSession } = require('../../shared/utils');
@@ -60,3 +61,24 @@ exports.handler = async (event) => {
     return errorResponse('Internal server error', 500);
   }
 };
+=======
+exports.handler = async (event) => {
+  try {
+
+    const id = event.pathParameters?.id;
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: `Mock delete OK for password ${id}`,
+      }),
+    };
+
+  } catch (e) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Mock error" }),
+    };
+  }
+};
+>>>>>>> 06d719353e6271563c50b00f2a0ac5d292aad24b
