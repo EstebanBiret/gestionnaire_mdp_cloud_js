@@ -8,8 +8,8 @@ export function initApp() {
         window.location.href = "login.html";
         return;
     }
-
-    document.getElementById("username").textContent = currentUser.login;
+    
+    document.getElementById("username").textContent = currentUser.firstname + " " + currentUser.lastname;
 
     loadPasswords();
 }

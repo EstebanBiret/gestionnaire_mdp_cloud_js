@@ -1,7 +1,7 @@
 exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
-    const { login, password } = body;
+    const { login, password, firstname, lastname } = body;
 
     if (!login || !password) {
       return {
@@ -22,6 +22,8 @@ exports.handler = async (event) => {
         sessionId,
         userId,
         login,
+        firstname,
+        lastname
       }),
     };
   } catch (error) {

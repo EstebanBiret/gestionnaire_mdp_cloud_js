@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionnaire</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        try {
+            const sessionId = localStorage.getItem('sessionId');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!sessionId || !currentUser) {
+                window.location.replace('login.html');
+            }
+        } catch (e) {
+            console.warn('Early auth check failed', e);
+        }
+    </script>
 </head>
 <body>
 
@@ -32,7 +43,13 @@
         <h2 id="modalTitle">Ajouter un mot de passe</h2>
         <input type="text" id="modalSite" placeholder="Site web" />
         <input type="text" id="modalLogin" placeholder="Login" />
-        <input type="password" id="modalPassword" placeholder="Mot de passe" />
+
+        <div class="password-input-wrapper">
+            <input type="password" id="modalPassword" placeholder="Mot de passe" />
+            <span class="toggle-password" onclick="togglePasswordVisibility()">Afficher</span>
+        </div>
+
+        <button class="btn-generate" onclick="generateStrongPassword()">Générer un mot de passe fort</button>
         <div class="modal-actions">
             <button onclick="savePassword()" class="btn-primary">Enregistrer</button>
             <button onclick="closeModal()" class="btn-secondary">Annuler</button>
@@ -44,12 +61,14 @@
 <script type="module">
     import { initApp } from "./app.js";
     import { logout } from "./js/auth.js";
-    import { showAddModal, closeModal } from "./js/modal.js";
+    import { showAddModal, closeModal, generateStrongPassword, togglePasswordVisibility } from "./js/modal.js";
     import { savePassword, editPassword, deletePassword } from "./js/passwords.js";
 
     window.logout = logout;
     window.showAddModal = showAddModal;
     window.closeModal = closeModal;
+    window.generateStrongPassword = generateStrongPassword;
+    window.togglePasswordVisibility = togglePasswordVisibility;
     window.savePassword = savePassword;
     window.editPassword = editPassword;
     window.deletePassword = deletePassword;
