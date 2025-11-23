@@ -21,7 +21,8 @@ exports.handler = async (event) => {
         console.log('EVENT register:', event);
         const body = event.body ? JSON.parse(event.body) : {};
 
-        let { email, login, password } = body;
+        let { email, login, password, firstname, lastname } = body;
+
         if (!email && login) email = login;
 
         if (!email || !password) {
@@ -41,6 +42,8 @@ exports.handler = async (event) => {
         const newUser = {
             userId,
             email,
+            firstname: firstname || "",
+            lastname: lastname || "",
             passwordHash: hashedPassword,
             createdAt: new Date().toISOString(),
             sessionToken,
@@ -57,7 +60,6 @@ exports.handler = async (event) => {
         return {
             statusCode: 201,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-
             body: JSON.stringify({
                 message: 'User created and logged in',
                 userId: userId,
