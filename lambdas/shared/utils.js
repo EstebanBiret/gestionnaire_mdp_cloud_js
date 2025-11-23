@@ -1,4 +1,5 @@
 const { SendMessageCommand } = require('@aws-sdk/client-sqs');
+const { GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { sqsClient } = require('./aws-clients');
 
 // Headers CORS
@@ -47,30 +48,28 @@ async function sendLog(queueName, message) {
 
 // Valider une session
 async function validateSession(sessionId, docClient) {
-  if (!sessionId) return null;
+    if (!sessionId) return null;
 
-  const { GetCommand } = require('@aws-sdk/lib-dynamodb');
-  
-  try {
-    const result = await docClient.send(
-      new GetCommand({
-        TableName: 'sessions',
-        Key: { sessionId },
-      })
-    );
+    try {
+        const result = await docClient.send(
+            new GetCommand({
+                TableName: 'sessions',
+                Key: { sessionId },
+            })
+        );
 
-    if (!result.Item) return null;
+        if (!result.Item) return null;
 
-    const now = Math.floor(Date.now() / 1000);
-    if (result.Item.expiresAt < now) {
-      return null;
+        const now = Math.floor(Date.now() / 1000);
+        if (result.Item.expiresAt < now) {
+            return null;
+        }
+
+        return result.Item;
+    } catch (error) {
+        console.error('Error validating session:', error);
+        return null;
     }
-
-    return result.Item;
-  } catch (error) {
-    console.error('Error validating session:', error);
-    return null;
-  }
 }
 
 // Extraire sessionId des headers ou cookies
