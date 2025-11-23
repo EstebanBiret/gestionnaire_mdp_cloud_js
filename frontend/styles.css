@@ -141,12 +141,12 @@ button:hover {
 .btn-secondary {
     width: auto;
     padding: 12px 30px;
-    background: #95a5a6;
+    background: #e74c3c;
     margin-left: 10px;
 }
 
 .btn-secondary:hover {
-    background: #7f8c8d;
+    background: #c0392b;
 }
 
 /* Passwords Grid */
@@ -232,7 +232,9 @@ button:hover {
 .close {
     color: #aaa;
     float: right;
-    font-size: 28px;
+    margin-top: -20px;
+    margin-right: -8px;
+    font-size: 30px;
     font-weight: bold;
     cursor: pointer;
 }
@@ -243,8 +245,13 @@ button:hover {
 
 .modal-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     margin-top: 20px;
+}
+
+#modalTitle {
+    margin-bottom: 20px; 
+    text-align: center;
 }
 
 /* Error messages */
@@ -288,4 +295,44 @@ button:hover {
 .btn-eye:hover,
 .btn-copy:hover {
     opacity: 0.7;
+}
+
+.btn-generate {
+    margin-top: 10px;
+    padding: 10px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+}
+
+.btn-generate:hover {
+    background: #2980b9;
+}
+
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: calc(50% - 9px);
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    color: #666;
+}
+
+.toggle-password:hover {    
+    color: #333;
 }

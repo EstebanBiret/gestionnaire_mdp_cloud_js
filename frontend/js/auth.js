@@ -67,10 +67,12 @@ export async function login() {
 
 // INSCRIPTION (REGISTER)
 export async function register() {
-    const username = document.getElementById("email").value;
+    const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const firstname = document.getElementById("firstname").value;
+    const lastname = document.getElementById("lastname").value;
 
-    if (!username || !password) {
+    if (!email || !password || !firstname || !lastname) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
         return;
     }
@@ -85,7 +87,12 @@ export async function register() {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: username, password })
+            body: JSON.stringify({
+                login: email,
+                password,
+                firstname,
+                lastname
+            })
         });
 
         const data = await response.json();
