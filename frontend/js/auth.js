@@ -1,14 +1,22 @@
 import { API_URL } from "../config.js";
 import { redirectToApp } from "./utils.js";
 
+// Gestion de la session
 export function getSessionId() {
-    return localStorage.getItem("sessionId");
+    const token = localStorage.getItem("sessionToken");
+    if (!token || token === "undefined" || token === "null") return null;
+    return token;
 }
 
 export function getCurrentUser() {
-    return JSON.parse(localStorage.getItem("currentUser") || "null");
+    try {
+        return JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (e) {
+        return null;
+    }
 }
 
+// Initialisation de la page de Login (Redirection si déjà connecté)
 export function initLoginPage() {
     const sessionId = getSessionId();
     const currentUser = getCurrentUser();
@@ -18,6 +26,7 @@ export function initLoginPage() {
     }
 }
 
+// CONNEXION (LOGIN)
 export async function login() {
     const username = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -35,20 +44,28 @@ export async function login() {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Erreur de connexion");
 
-        localStorage.setItem("sessionId", data.sessionId);
-        localStorage.setItem("currentUser", JSON.stringify({
-            userId: data.userId,
-            login: data.login
-        }));
+        if (!response.ok) {
+            throw new Error(data.message || "Identifiants incorrects");
+        }
 
-        redirectToApp();
+        if (data.sessionToken) {
+            localStorage.setItem("sessionToken", data.sessionToken);
+            localStorage.setItem("currentUser", JSON.stringify({
+                userId: data.userId,
+                login: data.email || username
+            }));
+            redirectToApp();
+        } else {
+            throw new Error("Erreur: Token manquant dans la réponse");
+        }
+
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
     }
 }
 
+// INSCRIPTION (REGISTER)
 export async function register() {
     const username = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -72,22 +89,30 @@ export async function register() {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Erreur d'inscription");
 
-        localStorage.setItem("sessionId", data.sessionId);
-        localStorage.setItem("currentUser", JSON.stringify({
-            userId: data.userId,
-            login: data.login
-        }));
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur lors de l'inscription");
+        }
 
-        redirectToApp();
+        if (data.sessionToken) {
+            localStorage.setItem("sessionToken", data.sessionToken);
+            localStorage.setItem("currentUser", JSON.stringify({
+                userId: data.userId,
+                login: data.login || username
+            }));
+            redirectToApp();
+        } else {
+            alert("Inscription réussie ! Veuillez vous connecter.");
+            window.location.href = "login.html";
+        }
+
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
     }
 }
 
 export function logout() {
-    localStorage.removeItem("sessionId");
+    localStorage.removeItem("sessionToken");
     localStorage.removeItem("currentUser");
     window.location.href = "login.html";
 }

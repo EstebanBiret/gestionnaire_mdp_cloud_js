@@ -1,7 +1,8 @@
 import { API_URL } from "../config.js";
 import { escapeHtml } from "./utils.js";
 import { closeModal, editingPasswordId, setEditingPasswordId } from "./modal.js";
-import { getSessionId } from "./auth.js";
+// CORRECTION : On importe 'logout' pour gérer l'erreur 401 proprement
+import { getSessionId, logout } from "./auth.js";
 
 export async function loadPasswords() {
     const sessionId = getSessionId();
@@ -12,7 +13,10 @@ export async function loadPasswords() {
         });
 
         if (response.status === 401) {
-            window.location.href = "login.html";
+            console.warn("Session expirée ou invalide, déconnexion...");
+            // CORRECTION CRITIQUE : On appelle logout() pour nettoyer le localStorage
+            // avant que la page ne redirige, stoppant ainsi la boucle infinie.
+            logout();
             return;
         }
 
@@ -26,7 +30,7 @@ export async function loadPasswords() {
 export function displayPasswords(passwords) {
     const container = document.getElementById("passwordsList");
 
-    if (passwords.length === 0) {
+    if (!passwords || passwords.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <h2>Aucun mot de passe enregistré</h2>
@@ -37,7 +41,15 @@ export function displayPasswords(passwords) {
     }
 
     container.innerHTML = passwords.map(pwd => {
-        const decrypted = atob(pwd.encryptedPassword || "");
+        // Attention: en prod, évitez de renvoyer encryptedPassword tel quel si possible
+        // Ici on suppose que le front doit déchiffrer (ce qui est une faille si c'est du simple base64)
+        let decrypted = "";
+        try {
+            decrypted = atob(pwd.encryptedPassword || "");
+        } catch (e) {
+            decrypted = "Erreur déchiffrement";
+        }
+
         const safeSite = escapeHtml(pwd.site);
         const safeLogin = escapeHtml(pwd.login);
 
@@ -99,7 +111,11 @@ export async function savePassword() {
         console.log("Réponse API:", data);
 
         if (!response.ok) {
-            throw new Error(data.error || "Erreur lors de l'enregistrement");
+            if (response.status === 401) {
+                logout();
+                return;
+            }
+            throw new Error(data.message || data.error || "Erreur lors de l'enregistrement");
         }
 
         closeModal();
@@ -122,10 +138,15 @@ export async function deletePassword(id) {
             headers: { "Authorization": `Bearer ${sessionId}` }
         });
 
-        const data = await response.json();
-        console.log("Réponse API:", data);
+        if (response.status === 401) {
+            logout();
+            return;
+        }
 
-        if (!response.ok) throw new Error("Erreur lors de la suppression");
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Erreur lors de la suppression");
+        }
 
         loadPasswords();
     } catch (error) {
@@ -147,9 +168,9 @@ export function editPassword(id) {
 
 window.editPassword = editPassword;
 window.deletePassword = deletePassword;
+
 window.togglePassword = function (id, value) {
     const span = document.getElementById(`pwd-value-${id}`);
-
     if (span.classList.contains("password-hidden")) {
         span.textContent = value;
         span.classList.remove("password-hidden");

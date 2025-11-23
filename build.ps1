@@ -1,74 +1,92 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$dist = Join-Path $root 'dist'
-$lambdaRoot = Join-Path $root 'lambdas'
-$shared = Join-Path $lambdaRoot 'shared'
-$sharedNodeModules = Join-Path $shared 'node_modules'
-$sharedZip = Join-Path $shared 'shared.zip'
+$dist = Join-Path $root "dist"
+$lambdaRoot = Join-Path $root "lambdas"
+$shared = Join-Path $lambdaRoot "shared"
+
+# --- CORRECTION ---
+# Les fichiers npm sont dans le dossier "shared"
+$packageJson = Join-Path $shared "package.json"
+$nodeModules = Join-Path $shared "node_modules"
+
+# --- 1. Installation automatique des dépendances ---
+if (Test-Path $packageJson) {
+    Write-Host "package.json détecté dans 'shared'. Vérification des modules..."
+
+    # On se déplace dans le dossier shared pour l'installation
+    Push-Location $shared
+    try {
+        cmd /c "npm install --production"
+        if ($LASTEXITCODE -ne 0) { throw "Erreur npm install" }
+    }
+    catch {
+        Write-Error "Échec de l'installation des dépendances."
+        Pop-Location
+        exit 1
+    }
+    Pop-Location
+} else {
+    Write-Warning "Aucun package.json trouvé dans $shared !"
+}
 
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
 New-Item -ItemType Directory $dist | Out-Null
 
-if (-not (Test-Path $sharedNodeModules)) {
-    Write-Host 'Installation des dépendances dans shared...'
-    Push-Location $shared
-    npm install --production
-    Pop-Location
+# --- 2. Préparation du ZIP partagé (Code + Modules) ---
+$tmpShared = Join-Path $root "tmp_shared"
+if (Test-Path $tmpShared) { Remove-Item -Recurse -Force $tmpShared }
+New-Item -ItemType Directory $tmpShared | Out-Null
+
+# A. Copier TOUT le contenu de shared (utils.js + node_modules fraîchement installés)
+# Comme node_modules est maintenant DANS shared, cette commande copie tout d'un coup.
+Copy-Item "$shared\*" $tmpShared -Recurse
+
+# B. Vérification de sécurité (pour être sûr que node_modules est bien là)
+if (-not (Test-Path (Join-Path $tmpShared "node_modules"))) {
+    Write-Warning "Attention : Le dossier node_modules semble absent du package final."
+} else {
+    Write-Host "node_modules inclus avec succès."
 }
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
+# C. Créer l'archive de base
+$sharedZip = Join-Path $dist "shared.zip"
+Compress-Archive -Path "$tmpShared\*" -DestinationPath $sharedZip -Force
 
-if (-not (Test-Path $sharedZip) -or (Get-Item $sharedZip).LastWriteTime -lt (Get-Item $sharedNodeModules).LastWriteTime) {
-    Write-Host 'Compression du cache shared...'
-    if (Test-Path $sharedZip) { Remove-Item $sharedZip -Force }
+Remove-Item -Recurse -Force $tmpShared
 
-    $tempZip = [System.IO.Compression.ZipFile]::Open($sharedZip, [System.IO.Compression.ZipArchiveMode]::Create)
-
-    Get-ChildItem -Path $sharedNodeModules -Recurse -File | ForEach-Object {
-        $relativePath = ($_.FullName.Substring($shared.Length + 1)) -replace '\\','/'
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($tempZip, $_.FullName, $relativePath)
-    }
-
-    $vendorPath = Join-Path $sharedNodeModules 'aws-sdk\vendor'
-    if (Test-Path $vendorPath) {
-        Get-ChildItem -Path $vendorPath -Recurse -File | ForEach-Object {
-            $vendorRelative = ($_.FullName.Substring($vendorPath.Length + 1)) -replace '\\','/'
-            $relativePath = "node_modules/aws-sdk/vendor/$vendorRelative"
-            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($tempZip, $_.FullName, $relativePath)
-        }
-    }
-
-    $tempZip.Dispose()
-}
-
+# --- 3. Construction des Lambdas ---
 $lambdas = @(
-    @{ Name = 'create';     Path = 'passwords/create' }
-    @{ Name = 'getAll';     Path = 'passwords/getAll' }
-    @{ Name = 'delete';     Path = 'passwords/delete' }
-    @{ Name = 'update';     Path = 'passwords/update' }
-    @{ Name = 'register';   Path = 'auth/register' }
-    @{ Name = 'logout';     Path = 'auth/logout' }
-    @{ Name = 'login';      Path = 'auth/login' }
-    @{ Name = 'authorizer'; Path = 'auth/authorizer' }
+    @{ Name = "create";     Path = "passwords/create";     Include = @("handler.js") }
+    @{ Name = "getAll";     Path = "passwords/getAll";     Include = @("handler.js") }
+    @{ Name = "delete";     Path = "passwords/delete";     Include = @("handler.js") }
+    @{ Name = "update";     Path = "passwords/update";     Include = @("handler.js") }
+    @{ Name = "register";   Path = "auth/register";        Include = @("handler.js") }
+    @{ Name = "logout";     Path = "auth/logout";          Include = @("handler.js") }
+    @{ Name = "login";      Path = "auth/login";           Include = @("handler.js") }
+    @{ Name = "authorizer"; Path = "auth/authorizer";      Include = @("handler.js") }
 )
 
 foreach ($lambda in $lambdas) {
     $lambdaPath = Join-Path $lambdaRoot $lambda.Path
-    $handlerFile = Join-Path $lambdaPath 'handler.js'
-    if (-not (Test-Path $handlerFile)) {
-        Write-Warning "handler.js introuvable pour $($lambda.Name)"
-        continue
+    $zipOut = Join-Path $dist "$($lambda.Name).zip"
+
+    Copy-Item $sharedZip $zipOut
+
+    $zip = [System.IO.Compression.ZipFile]::Open($zipOut, 'Update')
+
+    foreach ($pattern in $lambda.Include) {
+        Get-ChildItem -Path $lambdaPath -Filter $pattern -Recurse | ForEach-Object {
+            $entryPath = $_.FullName.Substring($lambdaPath.Length)
+
+            if ($entryPath.StartsWith("\") -or $entryPath.StartsWith("/")) {
+                $entryPath = $entryPath.Substring(1)
+            }
+
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
+        }
     }
 
-    $zipOut = Join-Path $dist "$($lambda.Name).zip"
-    Copy-Item $sharedZip $zipOut -Force
-
-    $zip = [System.IO.Compression.ZipFile]::Open($zipOut, [System.IO.Compression.ZipArchiveMode]::Update)
-    $existing = $zip.GetEntry('handler.js')
-    if ($existing) { $existing.Delete() }
-    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $handlerFile, 'handler.js')
     $zip.Dispose()
-
-    Write-Host "[ZIP] $zipOut prêt"
+    Write-Host "$($lambda.Name) construit."
 }
 
-Write-Host 'Build done!'
+Write-Host "Build termine avec succes !" -ForegroundColor Cyan

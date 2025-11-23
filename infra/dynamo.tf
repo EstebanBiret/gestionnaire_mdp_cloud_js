@@ -9,6 +9,11 @@ resource "aws_dynamodb_table" "passwords" {
   }
 
   attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
     name = "site"
     type = "S"
   }
@@ -16,6 +21,12 @@ resource "aws_dynamodb_table" "passwords" {
   global_secondary_index {
     name            = "site-index"
     hash_key        = "site"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "userId-index"
+    hash_key        = "userId"
     projection_type = "ALL"
   }
 

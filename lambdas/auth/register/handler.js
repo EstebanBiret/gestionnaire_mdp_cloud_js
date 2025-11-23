@@ -1,109 +1,77 @@
-// handler.js (refacto AWS SDK v3)
-const crypto = require('crypto');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const {
-    DynamoDBDocumentClient,
-    QueryCommand,
-    PutCommand,
-} = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const USERS_TABLE = process.env.USERS_TABLE || 'users';
 
-const client = new DynamoDBClient({});
-const ddb = DynamoDBDocumentClient.from(client);
+const endpoint = process.env.LOCALSTACK_HOSTNAME
+    ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+    : process.env.DYNAMODB_ENDPOINT;
 
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
-}
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'eu-west-3',
+    endpoint: endpoint
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT:', event);
-
+        console.log('EVENT register:', event);
         const body = event.body ? JSON.parse(event.body) : {};
-        const { email, password } = body;
+
+        let { email, login, password } = body;
+        if (!email && login) email = login;
 
         if (!email || !password) {
             return {
                 statusCode: 400,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-                body: JSON.stringify({
-                    message: 'Missing required fields: email, password',
-                }),
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ message: 'Email and password are required' }),
             };
         }
 
-        // Vérifier si l\'email existe déjà
-        const existingUser = await ddb.send(
-            new QueryCommand({
-                TableName: USERS_TABLE,
-                IndexName: 'email-index',
-                KeyConditionExpression: 'email = :email',
-                ExpressionAttributeValues: {
-                    ':email': email,
-                },
-            })
-        );
-
-        if (existingUser.Items && existingUser.Items.length > 0) {
-            return {
-                statusCode: 409,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-                body: JSON.stringify({
-                    message: 'Email already registered',
-                }),
-            };
-        }
-
+        const hashedPassword = await bcrypt.hash(password, 10);
         const userId = crypto.randomUUID();
-        const hashedPassword = hashPassword(password);
-        const now = Math.floor(Date.now() / 1000);
 
-        const user = {
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const sessionExpiry = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24h
+
+        const newUser = {
             userId,
             email,
-            password: hashedPassword,
-            createdAt: now,
-            updatedAt: now,
+            passwordHash: hashedPassword,
+            createdAt: new Date().toISOString(),
+            sessionToken,
+            sessionExpiry
         };
 
-        await ddb.send(
-            new PutCommand({
-                TableName: USERS_TABLE,
-                Item: user,
-                ConditionExpression: 'attribute_not_exists(userId)',
-            })
-        );
+        await docClient.send(new PutCommand({
+            TableName: USERS_TABLE,
+            Item: newUser
+        }));
 
-        console.log('User registered successfully:', userId);
+        console.log(`User registered successfully: ${userId}`);
 
         return {
             statusCode: 201,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+
             body: JSON.stringify({
-                message: 'User registered successfully',
-                userId,
-                email,
+                message: 'User created and logged in',
+                userId: userId,
+                login: email,
+                sessionToken: sessionToken
             }),
         };
+
     } catch (error) {
         console.error('Error in register:', error);
         return {
             statusCode: 500,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            body: JSON.stringify({ error: 'Internal server error' }),
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ message: 'Internal server error' }),
         };
     }
 };

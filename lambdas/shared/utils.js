@@ -1,8 +1,3 @@
-const { SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { GetCommand } = require('@aws-sdk/lib-dynamodb');
-const { sqsClient } = require('./aws-clients');
-
-// Headers CORS
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': '*',
@@ -10,91 +5,82 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-// Réponse success
-function successResponse(data, statusCode = 200) {
-  return {
-    statusCode,
-    headers: corsHeaders,
-    body: JSON.stringify(data),
-  };
-}
+const successResponse = (body, statusCode = 200) => {
+    return {
+        statusCode,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
+        body: JSON.stringify(body),
+    };
+};
 
-// Réponse erreur
-function errorResponse(message, statusCode = 400) {
-  return {
-    statusCode,
-    headers: corsHeaders,
-    body: JSON.stringify({ error: message }),
-  };
-}
+const errorResponse = (message, statusCode = 500) => {
+    return {
+        statusCode,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
+        body: JSON.stringify({ message }),
+    };
+};
 
-// Envoyer un log dans SQS
-async function sendLog(queueName, message) {
-  try {
-    const queueUrl = `http://localstack:4566/000000000000/${queueName}`;
-    await sqsClient.send(
-      new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          ...message,
-        }),
-      })
-    );
-  } catch (error) {
-    console.error('Error sending log to SQS:', error);
-  }
-}
+const extractSessionId = (event) => {
+    const headers = event.headers || {};
+    const authHeader = headers.Authorization || headers.authorization;
 
-// Valider une session
-async function validateSession(sessionId, docClient) {
+    if (!authHeader) return null;
+
+    // Format: "Bearer <token>"
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+        return parts[1];
+    }
+    return authHeader;
+};
+
+const validateSession = async (sessionId, docClient) => {
+    const { GetCommand } = require('@aws-sdk/lib-dynamodb');
+
     if (!sessionId) return null;
 
+    const USERS_TABLE = process.env.USERS_TABLE || 'users';
+
     try {
-        const result = await docClient.send(
-            new GetCommand({
-                TableName: 'sessions',
-                Key: { sessionId },
-            })
-        );
+        const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
-        if (!result.Item) return null;
+        const command = new ScanCommand({
+            TableName: USERS_TABLE,
+            FilterExpression: 'sessionToken = :token',
+            ExpressionAttributeValues: {
+                ':token': sessionId
+            }
+        });
 
-        const now = Math.floor(Date.now() / 1000);
-        if (result.Item.expiresAt < now) {
-            return null;
+        const result = await docClient.send(command);
+
+        if (result.Items && result.Items.length > 0) {
+            const user = result.Items[0];
+            const now = Math.floor(Date.now() / 1000);
+
+            if (user.sessionExpiry && user.sessionExpiry > now) {
+                return user;
+            }
         }
-
-        return result.Item;
+        return null;
     } catch (error) {
-        console.error('Error validating session:', error);
+        console.error("Session validation error:", error);
         return null;
     }
-}
-
-// Extraire sessionId des headers ou cookies
-function extractSessionId(event) {
-  // Depuis header Authorization
-  const authHeader = event.headers?.Authorization || event.headers?.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
-
-  // Depuis cookies
-  const cookies = event.headers?.Cookie || event.headers?.cookie;
-  if (cookies) {
-    const match = cookies.match(/sessionId=([^;]+)/);
-    if (match) return match[1];
-  }
-
-  return null;
-}
+};
 
 module.exports = {
-  corsHeaders,
-  successResponse,
-  errorResponse,
-  sendLog,
-  validateSession,
-  extractSessionId,
+    successResponse,
+    errorResponse,
+    extractSessionId,
+    validateSession
 };
