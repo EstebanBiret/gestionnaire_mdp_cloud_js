@@ -18,7 +18,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT login:', JSON.stringify(event));
 
         const body = JSON.parse(event.body || '{}');
         const { login, password } = body;
@@ -27,38 +26,34 @@ exports.handler = async (event) => {
             return {
                 statusCode: 400,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Login and password are required' }),
+                body: JSON.stringify({ message: 'Login et mot de passe requis' }),
             };
         }
 
-        // Recherche de l'utilisateur (uniquement par email car c'est le seul index créé)
         const user = await findUserByEmail(login);
 
         if (!user) {
             return {
                 statusCode: 401,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Invalid credentials' }),
+                body: JSON.stringify({ message: 'Ce compte n\'existe pas' }),
             };
         }
 
-        // Vérification du mot de passe
         const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
         if (!isPasswordValid) {
             return {
                 statusCode: 401,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Invalid credentials' }),
+                body: JSON.stringify({ message: 'Mot de passe incorrect' }),
             };
         }
 
-        // Génération du token de session
         const sessionToken = crypto.randomBytes(32).toString('hex');
         const sessionExpiry = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24h
         const now = new Date().toISOString();
 
-        // Mise à jour de l'utilisateur avec le nouveau token
         await docClient.send(new UpdateCommand({
             TableName: USERS_TABLE,
             Key: { userId: user.userId },
@@ -70,8 +65,6 @@ exports.handler = async (event) => {
             }
         }));
 
-        console.log(`User ${user.email} logged in successfully`);
-
         return {
             statusCode: 200,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -79,15 +72,16 @@ exports.handler = async (event) => {
                 sessionToken,
                 userId: user.userId,
                 email: user.email,
+                /*firstname: user.firstname,
+                lastname: user.lastname, TODO voir comment récup ces infos car on a pas ces champs dans le form de login, API pour avoir les infos du currentUser ?*/
                 expiresAt: sessionExpiry
             }),
         };
     } catch (error) {
-        console.error('Error in login:', error);
         return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ message: 'Internal server error' }),
+            body: JSON.stringify({ message: 'Erreur interne du serveur' }),
         };
     }
 };

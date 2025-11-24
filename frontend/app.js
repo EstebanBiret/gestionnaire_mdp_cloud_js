@@ -5,7 +5,6 @@ export function initApp() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
 
     if (!sessionId || sessionId === "undefined" || !currentUser) {
-        // Nettoyage préventif
         localStorage.removeItem("sessionToken");
         window.location.href = "login.html";
         return;

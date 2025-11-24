@@ -35,7 +35,6 @@ const extractSessionId = (event) => {
 
     if (!authHeader) return null;
 
-    // Format: "Bearer <token>"
     const parts = authHeader.split(' ');
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
         return parts[1];
@@ -73,7 +72,6 @@ const validateSession = async (sessionId, docClient) => {
         }
         return null;
     } catch (error) {
-        console.error("Session validation error:", error);
         return null;
     }
 };

@@ -3,16 +3,12 @@ $dist = Join-Path $root "dist"
 $lambdaRoot = Join-Path $root "lambdas"
 $shared = Join-Path $lambdaRoot "shared"
 
-# --- CORRECTION ---
-# Les fichiers npm sont dans le dossier "shared"
 $packageJson = Join-Path $shared "package.json"
 $nodeModules = Join-Path $shared "node_modules"
 
-# --- 1. Installation automatique des dépendances ---
 if (Test-Path $packageJson) {
     Write-Host "package.json détecté dans 'shared'. Vérification des modules..."
 
-    # On se déplace dans le dossier shared pour l'installation
     Push-Location $shared
     try {
         cmd /c "npm install --production"
@@ -31,29 +27,23 @@ if (Test-Path $packageJson) {
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
 New-Item -ItemType Directory $dist | Out-Null
 
-# --- 2. Préparation du ZIP partagé (Code + Modules) ---
 $tmpShared = Join-Path $root "tmp_shared"
 if (Test-Path $tmpShared) { Remove-Item -Recurse -Force $tmpShared }
 New-Item -ItemType Directory $tmpShared | Out-Null
 
-# A. Copier TOUT le contenu de shared (utils.js + node_modules fraîchement installés)
-# Comme node_modules est maintenant DANS shared, cette commande copie tout d'un coup.
 Copy-Item "$shared\*" $tmpShared -Recurse
 
-# B. Vérification de sécurité (pour être sûr que node_modules est bien là)
 if (-not (Test-Path (Join-Path $tmpShared "node_modules"))) {
     Write-Warning "Attention : Le dossier node_modules semble absent du package final."
 } else {
     Write-Host "node_modules inclus avec succès."
 }
 
-# C. Créer l'archive de base
 $sharedZip = Join-Path $dist "shared.zip"
 Compress-Archive -Path "$tmpShared\*" -DestinationPath $sharedZip -Force
 
 Remove-Item -Recurse -Force $tmpShared
 
-# --- 3. Construction des Lambdas ---
 $lambdas = @(
     @{ Name = "create";     Path = "passwords/create";     Include = @("handler.js") }
     @{ Name = "getAll";     Path = "passwords/getAll";     Include = @("handler.js") }

@@ -15,8 +15,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT update:', JSON.stringify(event));
-
         const sessionId = extractSessionId(event);
         if (!sessionId) return errorResponse('Unauthorized', 401);
 
@@ -91,9 +89,6 @@ exports.handler = async (event) => {
             })
         );
 
-        console.log(`Password ${passwordId} updated successfully`);
-
-        // 6. Réponse
         return successResponse({
             id: result.Attributes.id,
             site: result.Attributes.site,
@@ -103,7 +98,6 @@ exports.handler = async (event) => {
         });
 
     } catch (error) {
-        console.error('Error in update password:', error);
-        return errorResponse(`Internal server error: ${error.message}`, 500);
+        return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
     }
 };

@@ -1,11 +1,20 @@
-<script>
-    const s = localStorage.getItem("sessionId");
-    const u = localStorage.getItem("currentUser");
-    if (!s || !u) {
-        window.location.replace("login.html");
-    }
-</script>
+<script type="module">
+    import { initApp } from "./app.js";
+    import { logout } from "./js/auth.js";
+    import { showAddModal, closeModal, generateStrongPassword, togglePasswordVisibility } from "./js/modal.js";
+    import { savePassword, editPassword, deletePassword } from "./js/passwords.js";
 
+    window.logout = logout;
+    window.showAddModal = showAddModal;
+    window.closeModal = closeModal;
+    window.generateStrongPassword = generateStrongPassword;
+    window.togglePasswordVisibility = togglePasswordVisibility;
+    window.savePassword = savePassword;
+    window.editPassword = editPassword;
+    window.deletePassword = deletePassword;
+    initApp();
+</script>
+        
 <!DOCTYPE html>
 <html lang="fr">
     <head>
@@ -13,24 +22,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gestionnaire</title>
         <link rel="stylesheet" href="styles.css">
-
-        <script type="module">
-            import { initApp } from "./app.js";
-            import { logout } from "./js/auth.js";
-            import { showAddModal, closeModal, generateStrongPassword, togglePasswordVisibility } from "./js/modal.js";
-            import { savePassword, editPassword, deletePassword } from "./js/passwords.js";
-
-            window.logout = logout;
-            window.showAddModal = showAddModal;
-            window.closeModal = closeModal;
-            window.generateStrongPassword = generateStrongPassword;
-            window.togglePasswordVisibility = togglePasswordVisibility;
-            window.savePassword = savePassword;
-            window.editPassword = editPassword;
-            window.deletePassword = deletePassword;
-            initApp();
-        </script>
-
     </head>
     <body>
 
@@ -60,7 +51,7 @@
             <input type="text" id="modalLogin" placeholder="Login" />
 
             <div class="password-input-wrapper">
-                <input type="password" id="modalPassword" placeholder="Mot de passe" />
+                <input type="password" id="modalPassword" placeholder="Mot de passe (min 8 caractères)" />
                 <span class="toggle-password" onclick="togglePasswordVisibility()">Afficher</span>
             </div>
 

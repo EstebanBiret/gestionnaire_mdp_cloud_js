@@ -1,3 +1,9 @@
+<script type="module">
+    import { initLoginRegisterPages, login } from "./js/auth.js";
+    window.login = login;
+    initLoginRegisterPages();
+</script>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -24,12 +30,6 @@
         </div>
     </div>
 </div>
-
-<script type="module">
-    import { initLoginPage, login } from "./js/auth.js";
-    window.login = login;
-    initLoginPage();
-</script>
 
 </body>
 </html>

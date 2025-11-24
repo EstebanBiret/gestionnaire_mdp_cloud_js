@@ -18,7 +18,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT register:', event);
         const body = event.body ? JSON.parse(event.body) : {};
 
         let { email, login, password, firstname, lastname } = body;
@@ -29,7 +28,7 @@ exports.handler = async (event) => {
             return {
                 statusCode: 400,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Email and password are required' }),
+                body: JSON.stringify({ message: 'Le mail et le mot de passe sont requis' }),
             };
         }
 
@@ -55,25 +54,24 @@ exports.handler = async (event) => {
             Item: newUser
         }));
 
-        console.log(`User registered successfully: ${userId}`);
-
         return {
             statusCode: 201,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify({
-                message: 'User created and logged in',
+                message: 'Utilisateur créé et connecté avec succès',
                 userId: userId,
                 login: email,
+                firstname: firstname,
+                lastname: lastname,
                 sessionToken: sessionToken
             }),
         };
 
     } catch (error) {
-        console.error('Error in register:', error);
         return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ message: 'Internal server error' }),
+            body: JSON.stringify({ message: 'Erreur interne du serveur' }),
         };
     }
 };

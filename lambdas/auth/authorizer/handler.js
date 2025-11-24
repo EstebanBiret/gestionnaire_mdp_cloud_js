@@ -15,13 +15,10 @@ const client = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
-    console.log('AUTHORIZER EVENT:', JSON.stringify(event));
-
     try {
         const tokenValue = event.authorizationToken || event.headers?.Authorization || event.headers?.authorization;
 
         if (!tokenValue) {
-            console.log("No token found");
             throw new Error('Unauthorized');
         }
 
@@ -41,17 +38,14 @@ exports.handler = async (event) => {
         const result = await docClient.send(command);
 
         if (!result.Items || result.Items.length === 0) {
-            console.log("Token invalid or expired");
             throw new Error('Unauthorized');
         }
 
         const user = result.Items[0];
-        console.log(`Authorizer success for user: ${user.email}`);
 
         return generatePolicy(user.userId, 'Allow', event.methodArn, user);
 
     } catch (error) {
-        console.error('Authorization failed:', error);
         throw new Error('Unauthorized');
     }
 };

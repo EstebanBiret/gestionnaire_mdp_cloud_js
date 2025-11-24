@@ -15,19 +15,17 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT create:', JSON.stringify(event));
-
         const sessionId = extractSessionId(event);
         if (!sessionId) return errorResponse('Unauthorized', 401);
 
         const session = await validateSession(sessionId, docClient);
-        if (!session) return errorResponse('Invalid or expired session', 401);
+        if (!session) return errorResponse('Session invalide ou expirée', 401);
 
         const body = event.body ? JSON.parse(event.body) : {};
         const { site, login, encryptedPassword } = body;
 
         if (!site || !login || !encryptedPassword) {
-            return errorResponse("Site, login and encryptedPassword are required", 400);
+            return errorResponse("Site, login et mot de passe sont requis", 400);
         }
 
         const passwordItem = {
@@ -45,12 +43,9 @@ exports.handler = async (event) => {
             Item: passwordItem
         }));
 
-        console.log("Password saved:", passwordItem);
-
         return successResponse(passwordItem, 201);
 
     } catch (error) {
-        console.error('Error creating password:', error);
-        return errorResponse("Internal server error", 500);
+        return errorResponse("Erreur interne du serveur", 500);
     }
 };

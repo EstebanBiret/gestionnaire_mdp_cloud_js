@@ -16,8 +16,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT logout:', JSON.stringify(event));
-
         const authHeader = event.headers?.Authorization || event.headers?.authorization;
         const token = authHeader?.replace(/^Bearer\s+/i, '');
 
@@ -28,7 +26,7 @@ exports.handler = async (event) => {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                body: JSON.stringify({ message: 'Authorization token is required' })
+                body: JSON.stringify({ message: 'Token d\'autorisation requis' })
             };
         }
 
@@ -50,7 +48,7 @@ exports.handler = async (event) => {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                body: JSON.stringify({ message: 'Invalid or expired token' })
+                body: JSON.stringify({ message: 'Token invalide ou expiré' })
             };
         }
 
@@ -65,26 +63,23 @@ exports.handler = async (event) => {
 
         await docClient.send(updateCommand);
 
-        console.log('User logged out successfully:', user.userId);
-
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({ message: 'Logged out successfully' })
+            body: JSON.stringify({ message: 'Déconnexion réussie' })
         };
 
     } catch (error) {
-        console.error('Error in logout:', error);
         return {
             statusCode: 500,
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({ message: 'Internal server error' })
+            body: JSON.stringify({ message: 'Erreur interne du serveur' })
         };
     }
 };

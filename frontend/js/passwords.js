@@ -1,8 +1,9 @@
 import { API_URL } from "../config.js";
 import { escapeHtml } from "./utils.js";
 import { closeModal, editingPasswordId, setEditingPasswordId } from "./modal.js";
-// CORRECTION : On importe 'logout' pour gérer l'erreur 401 proprement
 import { getSessionId, logout } from "./auth.js";
+
+const passwordById = new Map();
 
 export async function loadPasswords() {
     const sessionId = getSessionId();
@@ -13,9 +14,6 @@ export async function loadPasswords() {
         });
 
         if (response.status === 401) {
-            console.warn("Session expirée ou invalide, déconnexion...");
-            // CORRECTION CRITIQUE : On appelle logout() pour nettoyer le localStorage
-            // avant que la page ne redirige, stoppant ainsi la boucle infinie.
             logout();
             return;
         }
@@ -23,7 +21,7 @@ export async function loadPasswords() {
         const passwords = await response.json();
         displayPasswords(passwords);
     } catch (err) {
-        console.error("Erreur lors du chargement:", err);
+
     }
 }
 
@@ -34,15 +32,15 @@ export function displayPasswords(passwords) {
         container.innerHTML = `
             <div class="empty-state">
                 <h2>Aucun mot de passe enregistré</h2>
-                <p>Commencez par ajouter votre premier mot de passe</p>
+                <p>Commencez par ajouter votre premier mot de passe !</p>
             </div>
         `;
         return;
     }
 
+    passwordById.clear();
+
     container.innerHTML = passwords.map(pwd => {
-        // Attention: en prod, évitez de renvoyer encryptedPassword tel quel si possible
-        // Ici on suppose que le front doit déchiffrer (ce qui est une faille si c'est du simple base64)
         let decrypted = "";
         try {
             decrypted = atob(pwd.encryptedPassword || "");
@@ -50,8 +48,18 @@ export function displayPasswords(passwords) {
             decrypted = "Erreur déchiffrement";
         }
 
+        const masked = (decrypted === "Erreur déchiffrement")
+            ? '•'.repeat(8)
+            : '•'.repeat(Math.max(1, decrypted.length));
+
         const safeSite = escapeHtml(pwd.site);
         const safeLogin = escapeHtml(pwd.login);
+
+        passwordById.set(pwd.id, {
+            site: pwd.site,
+            login: pwd.login,
+            decrypted
+        });
 
         return `
         <div class="password-card" id="pwd-${pwd.id}">
@@ -60,10 +68,11 @@ export function displayPasswords(passwords) {
 
             <p>
                 <strong>Mot de passe :</strong>
-                <span id="pwd-value-${pwd.id}" class="password-hidden">••••••••</span>
-
-                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">👁️</button>
-                <button class="btn-copy" onclick="copyPassword('${decrypted}')">📋</button>
+                <span id="pwd-value-${pwd.id}" class="password-hidden">${masked}</span>
+            </p>
+            <p>
+                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">Afficher</button>
+                <button class="btn-copy" onclick="copyPassword('${decrypted}')">Copier</button>
             </p>
 
             <div class="actions">
@@ -83,6 +92,12 @@ export async function savePassword() {
 
     if (!site || !login || !password) {
         document.getElementById("modalError").textContent = "Veuillez remplir tous les champs";
+        return;
+    }
+
+    if (password.length < 8) {
+        document.getElementById("modalError").textContent =
+            "Le mot de passe doit contenir au moins 8 caractères";
         return;
     }
 
@@ -108,7 +123,6 @@ export async function savePassword() {
         });
 
         const data = await response.json();
-        console.log("Réponse API:", data);
 
         if (!response.ok) {
             if (response.status === 401) {
@@ -158,9 +172,16 @@ export function editPassword(id) {
     setEditingPasswordId(id);
 
     document.getElementById("modalTitle").textContent = "Modifier le mot de passe";
-    document.getElementById("modalSite").value = "";
-    document.getElementById("modalLogin").value = "";
-    document.getElementById("modalPassword").value = "";
+    const entry = passwordById.get(id);
+    if (entry) {
+        document.getElementById("modalSite").value = entry.site;
+        document.getElementById("modalLogin").value = entry.login;
+        document.getElementById("modalPassword").value = entry.decrypted === "Erreur déchiffrement" ? "" : entry.decrypted;
+    } else {
+        document.getElementById("modalSite").value = "";
+        document.getElementById("modalLogin").value = "";
+        document.getElementById("modalPassword").value = "";
+    }
     document.getElementById("modalError").textContent = "";
 
     document.getElementById("modal").style.display = "block";
@@ -171,12 +192,17 @@ window.deletePassword = deletePassword;
 
 window.togglePassword = function (id, value) {
     const span = document.getElementById(`pwd-value-${id}`);
+    const btn = event.target;
+
     if (span.classList.contains("password-hidden")) {
         span.textContent = value;
         span.classList.remove("password-hidden");
+        btn.textContent = "Masquer";
     } else {
-        span.textContent = "••••••••";
+        const masked = (value === "Erreur déchiffrement") ? '•'.repeat(8) : '•'.repeat(Math.max(1, value.length));
+        span.textContent = masked;
         span.classList.add("password-hidden");
+        btn.textContent = "Afficher";
     }
 };
 

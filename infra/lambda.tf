@@ -36,7 +36,7 @@ resource "aws_lambda_function" "delete" {
   depends_on    = [null_resource.build_lambdas]
   function_name = "delete"
   runtime       = "nodejs18.x"
-  handler       = "handler.handler" # Déjà correct
+  handler       = "handler.handler"
   filename      = "${path.module}/../dist/delete.zip"
   role          = aws_iam_role.lambda_exec.arn
 
@@ -52,7 +52,7 @@ resource "aws_lambda_function" "update" {
   depends_on    = [null_resource.build_lambdas]
   function_name = "update"
   runtime       = "nodejs18.x"
-  handler       = "handler.handler" # Déjà correct
+  handler       = "handler.handler"
   filename      = "${path.module}/../dist/update.zip"
   role          = aws_iam_role.lambda_exec.arn
 

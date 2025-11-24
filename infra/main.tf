@@ -86,7 +86,6 @@ resource "aws_s3_object" "app_js" {
   content_type = "application/javascript"
 }
 
-# config.js généré automatiquement avec la bonne URL d'API Gateway
 resource "aws_s3_object" "config" {
   bucket       = aws_s3_bucket.frontend.id
   key          = "config.js"

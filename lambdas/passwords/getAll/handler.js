@@ -15,8 +15,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT getAll:', JSON.stringify(event));
-
         const sessionId = extractSessionId(event);
         if (!sessionId) return errorResponse('Unauthorized', 401);
 
@@ -35,8 +33,8 @@ exports.handler = async (event) => {
         const result = await docClient.send(command);
 
         return successResponse(result.Items || []);
+        
     } catch (error) {
-        console.error('Error in getAll passwords:', error);
-        return errorResponse(`Internal server error: ${error.message}`, 500);
+        return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
     }
 };
