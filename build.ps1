@@ -3,49 +3,80 @@ $dist = Join-Path $root "dist"
 $lambdaRoot = Join-Path $root "lambdas"
 $shared = Join-Path $lambdaRoot "shared"
 
+$packageJson = Join-Path $shared "package.json"
+$nodeModules = Join-Path $shared "node_modules"
+
+if (Test-Path $packageJson) {
+    Write-Host "package.json détecté dans 'shared'. Vérification des modules..."
+
+    Push-Location $shared
+    try {
+        cmd /c "npm install --production"
+        if ($LASTEXITCODE -ne 0) { throw "Erreur npm install" }
+    }
+    catch {
+        Write-Error "Échec de l'installation des dépendances."
+        Pop-Location
+        exit 1
+    }
+    Pop-Location
+} else {
+    Write-Warning "Aucun package.json trouvé dans $shared !"
+}
+
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
 New-Item -ItemType Directory $dist | Out-Null
 
-# Créer un dossier temporaire pour shared
 $tmpShared = Join-Path $root "tmp_shared"
 if (Test-Path $tmpShared) { Remove-Item -Recurse -Force $tmpShared }
-Copy-Item $shared $tmpShared -Recurse
+New-Item -ItemType Directory $tmpShared | Out-Null
 
-# Zipper shared une fois
+Copy-Item "$shared\*" $tmpShared -Recurse
+
+if (-not (Test-Path (Join-Path $tmpShared "node_modules"))) {
+    Write-Warning "Attention : Le dossier node_modules semble absent du package final."
+} else {
+    Write-Host "node_modules inclus avec succès."
+}
+
 $sharedZip = Join-Path $dist "shared.zip"
-Compress-Archive -Path "$tmpShared/*" -DestinationPath $sharedZip -Force
+Compress-Archive -Path "$tmpShared\*" -DestinationPath $sharedZip -Force
 
 Remove-Item -Recurse -Force $tmpShared
 
 $lambdas = @(
-    @{ Name = "create";   Path = "passwords/create" }
-    @{ Name = "getAll";   Path = "passwords/getAll" }
-    @{ Name = "delete";   Path = "passwords/delete" }
-    @{ Name = "update";   Path = "passwords/update" }
-    @{ Name = "register"; Path = "auth/register" }
-    @{ Name = "logout";   Path = "auth/logout" }
-    @{ Name = "login";    Path = "auth/login" }
+    @{ Name = "create";     Path = "passwords/create";     Include = @("handler.js") }
+    @{ Name = "getAll";     Path = "passwords/getAll";     Include = @("handler.js") }
+    @{ Name = "delete";     Path = "passwords/delete";     Include = @("handler.js") }
+    @{ Name = "update";     Path = "passwords/update";     Include = @("handler.js") }
+    @{ Name = "register";   Path = "auth/register";        Include = @("handler.js") }
+    @{ Name = "logout";     Path = "auth/logout";          Include = @("handler.js") }
+    @{ Name = "login";      Path = "auth/login";           Include = @("handler.js") }
+    @{ Name = "authorizer"; Path = "auth/authorizer";      Include = @("handler.js") }
 )
 
 foreach ($lambda in $lambdas) {
-
     $lambdaPath = Join-Path $lambdaRoot $lambda.Path
     $zipOut = Join-Path $dist "$($lambda.Name).zip"
 
-    # Copier shared.zip comme base
     Copy-Item $sharedZip $zipOut
 
-    # Injecter le handler dedans
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [System.IO.Compression.ZipFile]::Open($zipOut, 'Update')
 
-    Get-ChildItem -Recurse $lambdaPath | ForEach-Object {
-        $entryPath = $_.FullName.Substring($lambdaRoot.Length + 1)
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
+    foreach ($pattern in $lambda.Include) {
+        Get-ChildItem -Path $lambdaPath -Filter $pattern -Recurse | ForEach-Object {
+            $entryPath = $_.FullName.Substring($lambdaPath.Length)
+
+            if ($entryPath.StartsWith("\") -or $entryPath.StartsWith("/")) {
+                $entryPath = $entryPath.Substring(1)
+            }
+
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryPath)
+        }
     }
 
     $zip.Dispose()
-    Write-Host "[ZIP] $zipOut created"
+    Write-Host "$($lambda.Name) construit."
 }
 
-Write-Host "Build done!"
+Write-Host "Build termine avec succes !" -ForegroundColor Cyan

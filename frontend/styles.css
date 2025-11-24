@@ -130,6 +130,8 @@ button:hover {
 /* Actions */
 .actions {
     margin: 30px 0;
+    display: flex;
+    justify-content: center;
 }
 
 .btn-primary {
@@ -285,7 +287,7 @@ button:hover {
 
 .btn-eye,
 .btn-copy {
-    background: transparent;
+    background: #667eea;
     border: none;
     cursor: pointer;
     font-size: 16px;

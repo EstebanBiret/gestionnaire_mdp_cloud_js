@@ -2,11 +2,26 @@ import { API_URL } from "../config.js";
 import { redirectToApp } from "./utils.js";
 
 export function getSessionId() {
-    return localStorage.getItem("sessionId");
+    const token = localStorage.getItem("sessionToken");
+    if (!token || token === "undefined" || token === "null") return null;
+    return token;
 }
 
 export function getCurrentUser() {
-    return JSON.parse(localStorage.getItem("currentUser") || "null");
+    try {
+        return JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (e) {
+        return null;
+    }
+}
+
+export function initLoginRegisterPages() {
+    const sessionId = getSessionId();
+    const currentUser = getCurrentUser();
+
+    if (sessionId && currentUser) {
+        window.location.href = "index.html";
+    }
 }
 
 export async function login() {
@@ -26,17 +41,22 @@ export async function login() {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Erreur de connexion");
 
-        localStorage.setItem("sessionId", data.sessionId);
-        localStorage.setItem("currentUser", JSON.stringify({
-            userId: data.userId,
-            login: data.login,
-            firstname: data.firstname,
-            lastname: data.lastname
-        }));
+        if (!response.ok) {
+            throw new Error(data.message || "Identifiants incorrects");
+        }
 
-        redirectToApp();
+        if (data.sessionToken) {
+            localStorage.setItem("sessionToken", data.sessionToken);
+            localStorage.setItem("currentUser", JSON.stringify({
+                userId: data.userId,
+                login: data.email || email
+            }));
+            redirectToApp();
+        } else {
+            throw new Error("Erreur: Token manquant dans la réponse");
+        }
+
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
     }
@@ -63,28 +83,38 @@ export async function register() {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: email, password })
+            body: JSON.stringify({
+                login: email,
+                password,
+                firstname,
+                lastname
+            })
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Erreur d'inscription");
 
-        localStorage.setItem("sessionId", data.sessionId);
-        localStorage.setItem("currentUser", JSON.stringify({
-            userId: data.userId,
-            login: data.login,
-            firstname: data.firstname,
-            lastname: data.lastname
-        }));
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur lors de l'inscription");
+        }
 
-        redirectToApp();
+        if (data.sessionToken) {
+            localStorage.setItem("sessionToken", data.sessionToken);
+            localStorage.setItem("currentUser", JSON.stringify({
+                userId: data.userId,
+                login: data.login || email
+            }));
+            redirectToApp();
+        } else {
+            window.location.href = "login.html";
+        }
+
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
     }
 }
 
 export function logout() {
-    localStorage.removeItem("sessionId");
+    localStorage.removeItem("sessionToken");
     localStorage.removeItem("currentUser");
     window.location.href = "login.html";
 }

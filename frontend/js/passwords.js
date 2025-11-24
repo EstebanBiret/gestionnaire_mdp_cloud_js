@@ -1,7 +1,9 @@
 import { API_URL } from "../config.js";
 import { escapeHtml } from "./utils.js";
 import { closeModal, editingPasswordId, setEditingPasswordId } from "./modal.js";
-import { getSessionId } from "./auth.js";
+import { getSessionId, logout } from "./auth.js";
+
+const passwordById = new Map();
 
 export async function loadPasswords() {
     const sessionId = getSessionId();
@@ -12,34 +14,52 @@ export async function loadPasswords() {
         });
 
         if (response.status === 401) {
-            window.location.href = "login.html";
+            logout();
             return;
         }
 
         const passwords = await response.json();
         displayPasswords(passwords);
     } catch (err) {
-        console.error("Erreur lors du chargement:", err);
+
     }
 }
 
 export function displayPasswords(passwords) {
     const container = document.getElementById("passwordsList");
 
-    if (passwords.length === 0) {
+    if (!passwords || passwords.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <h2>Aucun mot de passe enregistré</h2>
-                <p>Commencez par ajouter votre premier mot de passe</p>
+                <p>Commencez par ajouter votre premier mot de passe !</p>
             </div>
         `;
         return;
     }
 
+    passwordById.clear();
+
     container.innerHTML = passwords.map(pwd => {
-        const decrypted = atob(pwd.encryptedPassword || "");
+        let decrypted = "";
+        try {
+            decrypted = atob(pwd.encryptedPassword || "");
+        } catch (e) {
+            decrypted = "Erreur déchiffrement";
+        }
+
+        const masked = (decrypted === "Erreur déchiffrement")
+            ? '•'.repeat(8)
+            : '•'.repeat(Math.max(1, decrypted.length));
+
         const safeSite = escapeHtml(pwd.site);
         const safeLogin = escapeHtml(pwd.login);
+
+        passwordById.set(pwd.id, {
+            site: pwd.site,
+            login: pwd.login,
+            decrypted
+        });
 
         return `
         <div class="password-card" id="pwd-${pwd.id}">
@@ -48,10 +68,11 @@ export function displayPasswords(passwords) {
 
             <p>
                 <strong>Mot de passe :</strong>
-                <span id="pwd-value-${pwd.id}" class="password-hidden">••••••••</span>
-
-                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">👁️</button>
-                <button class="btn-copy" onclick="copyPassword('${decrypted}')">📋</button>
+                <span id="pwd-value-${pwd.id}" class="password-hidden">${masked}</span>
+            </p>
+            <p>
+                <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">Afficher</button>
+                <button class="btn-copy" onclick="copyPassword('${decrypted}')">Copier</button>
             </p>
 
             <div class="actions">
@@ -71,6 +92,12 @@ export async function savePassword() {
 
     if (!site || !login || !password) {
         document.getElementById("modalError").textContent = "Veuillez remplir tous les champs";
+        return;
+    }
+
+    if (password.length < 8) {
+        document.getElementById("modalError").textContent =
+            "Le mot de passe doit contenir au moins 8 caractères";
         return;
     }
 
@@ -96,10 +123,13 @@ export async function savePassword() {
         });
 
         const data = await response.json();
-        console.log("Réponse API:", data);
 
         if (!response.ok) {
-            throw new Error(data.error || "Erreur lors de l'enregistrement");
+            if (response.status === 401) {
+                logout();
+                return;
+            }
+            throw new Error(data.message || data.error || "Erreur lors de l'enregistrement");
         }
 
         closeModal();
@@ -122,10 +152,15 @@ export async function deletePassword(id) {
             headers: { "Authorization": `Bearer ${sessionId}` }
         });
 
-        const data = await response.json();
-        console.log("Réponse API:", data);
+        if (response.status === 401) {
+            logout();
+            return;
+        }
 
-        if (!response.ok) throw new Error("Erreur lors de la suppression");
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Erreur lors de la suppression");
+        }
 
         loadPasswords();
     } catch (error) {
@@ -137,9 +172,16 @@ export function editPassword(id) {
     setEditingPasswordId(id);
 
     document.getElementById("modalTitle").textContent = "Modifier le mot de passe";
-    document.getElementById("modalSite").value = "";
-    document.getElementById("modalLogin").value = "";
-    document.getElementById("modalPassword").value = "";
+    const entry = passwordById.get(id);
+    if (entry) {
+        document.getElementById("modalSite").value = entry.site;
+        document.getElementById("modalLogin").value = entry.login;
+        document.getElementById("modalPassword").value = entry.decrypted === "Erreur déchiffrement" ? "" : entry.decrypted;
+    } else {
+        document.getElementById("modalSite").value = "";
+        document.getElementById("modalLogin").value = "";
+        document.getElementById("modalPassword").value = "";
+    }
     document.getElementById("modalError").textContent = "";
 
     document.getElementById("modal").style.display = "block";
@@ -147,15 +189,20 @@ export function editPassword(id) {
 
 window.editPassword = editPassword;
 window.deletePassword = deletePassword;
+
 window.togglePassword = function (id, value) {
     const span = document.getElementById(`pwd-value-${id}`);
+    const btn = event.target;
 
     if (span.classList.contains("password-hidden")) {
         span.textContent = value;
         span.classList.remove("password-hidden");
+        btn.textContent = "Masquer";
     } else {
-        span.textContent = "••••••••";
+        const masked = (value === "Erreur déchiffrement") ? '•'.repeat(8) : '•'.repeat(Math.max(1, value.length));
+        span.textContent = masked;
         span.classList.add("password-hidden");
+        btn.textContent = "Afficher";
     }
 };
 

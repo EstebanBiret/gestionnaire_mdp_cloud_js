@@ -1,22 +1,40 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
+
+const endpoint = process.env.LOCALSTACK_HOSTNAME
+    ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+    : process.env.DYNAMODB_ENDPOINT;
+
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'eu-west-3',
+    endpoint: endpoint
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+
 exports.handler = async (event) => {
-  try {
-    const session = { userId: "test-user" };
+    try {
+        const sessionId = extractSessionId(event);
+        if (!sessionId) return errorResponse('Unauthorized', 401);
 
-    // Données de test pour l'api
-    const passwords = [
-      { id: "1", site: "exemple.com", login: "user1", encryptedPassword: "xxxx", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: "2", site: "test.com", login: "user2", encryptedPassword: "yyyy", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ];
+        const session = await validateSession(sessionId, docClient);
+        if (!session) return errorResponse('Invalid or expired session', 401);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(passwords)
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Internal server error" })
-    };
-  }
+        const command = new QueryCommand({
+            TableName: process.env.TABLE_NAME || 'passwords',
+            IndexName: 'userId-index',
+            KeyConditionExpression: 'userId = :userId',
+            ExpressionAttributeValues: {
+                ':userId': session.userId,
+            },
+        });
+
+        const result = await docClient.send(command);
+
+        return successResponse(result.Items || []);
+        
+    } catch (error) {
+        return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
+    }
 };

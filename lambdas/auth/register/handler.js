@@ -1,24 +1,77 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+const USERS_TABLE = process.env.USERS_TABLE || 'users';
+
+const endpoint = process.env.LOCALSTACK_HOSTNAME
+    ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+    : process.env.DYNAMODB_ENDPOINT;
+
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'eu-west-3',
+    endpoint: endpoint
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+
 exports.handler = async (event) => {
-  try {
-    console.log("EVENT:", event);
+    try {
+        const body = event.body ? JSON.parse(event.body) : {};
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
-      body: JSON.stringify({
-        message: "Auth Lambda OK",
-        received: event.body ? JSON.parse(event.body) : null
-      })
-    };
+        let { email, login, password, firstname, lastname } = body;
 
-  } catch (e) {
-    console.error(e);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal error" })
-    };
-  }
+        if (!email && login) email = login;
+
+        if (!email || !password) {
+            return {
+                statusCode: 400,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ message: 'Le mail et le mot de passe sont requis' }),
+            };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const userId = crypto.randomUUID();
+
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const sessionExpiry = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24h
+
+        const newUser = {
+            userId,
+            email,
+            firstname: firstname || "",
+            lastname: lastname || "",
+            passwordHash: hashedPassword,
+            createdAt: new Date().toISOString(),
+            sessionToken,
+            sessionExpiry
+        };
+
+        await docClient.send(new PutCommand({
+            TableName: USERS_TABLE,
+            Item: newUser
+        }));
+
+        return {
+            statusCode: 201,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({
+                message: 'Utilisateur créé et connecté avec succès',
+                userId: userId,
+                login: email,
+                firstname: firstname,
+                lastname: lastname,
+                sessionToken: sessionToken
+            }),
+        };
+
+    } catch (error) {
+        return {
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ message: 'Erreur interne du serveur' }),
+        };
+    }
 };

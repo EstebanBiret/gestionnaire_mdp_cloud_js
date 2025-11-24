@@ -51,7 +51,8 @@ resource "aws_api_gateway_method" "get_passwords" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.passwords.id
   http_method   = "GET"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "get_passwords_integration" {
@@ -70,7 +71,8 @@ resource "aws_api_gateway_method" "post_passwords" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.passwords.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "post_passwords_integration" {
@@ -87,7 +89,8 @@ resource "aws_api_gateway_method" "delete_password" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.password_by_id.id
   http_method   = "DELETE"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "delete_password_integration" {
@@ -104,7 +107,8 @@ resource "aws_api_gateway_method" "update_password" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.password_by_id.id
   http_method   = "PUT"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "update_password_integration" {
@@ -138,7 +142,8 @@ resource "aws_api_gateway_method" "post_auth_logout" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.auth_logout.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "post_auth_logout_integration" {
@@ -155,7 +160,8 @@ resource "aws_api_gateway_method" "post_auth_login" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.auth_login.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "post_auth_login_integration" {
@@ -180,4 +186,13 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   ]
   rest_api_id = aws_api_gateway_rest_api.password_api.id
   stage_name  = "dev"
+}
+
+resource "aws_api_gateway_authorizer" "lambda_authorizer" {
+  name                   = "lambda-authorizer"
+  rest_api_id            = aws_api_gateway_rest_api.password_api.id
+  authorizer_uri         = aws_lambda_function.authorizer.invoke_arn
+  authorizer_credentials = aws_iam_role.api_gateway_authorizer.arn
+  type                   = "TOKEN"
+  identity_source        = "method.request.header.Authorization"
 }

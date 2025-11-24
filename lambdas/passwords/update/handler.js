@@ -1,31 +1,103 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
+
+const endpoint = process.env.LOCALSTACK_HOSTNAME
+    ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+    : process.env.DYNAMODB_ENDPOINT;
+
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || "eu-west-3",
+    endpoint: endpoint
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+
 exports.handler = async (event) => {
-  try {
-    console.log("Event:", event);
+    try {
+        const sessionId = extractSessionId(event);
+        if (!sessionId) return errorResponse('Unauthorized', 401);
 
-    // Simuler l'extraction du sessionId
-    const sessionId = "fake-session-id";
+        const session = await validateSession(sessionId, docClient);
+        if (!session) return errorResponse('Invalid or expired session', 401);
 
-    const passwordId = event.pathParameters?.id;
-    if (!passwordId) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: "Password ID is required" })
-      };
+        const passwordId = event.pathParameters?.id;
+        if (!passwordId) {
+            return errorResponse('Password ID is required', 400);
+        }
+
+        const body = event.body ? JSON.parse(event.body) : {};
+        const { site, login, encryptedPassword } = body;
+
+        if (!site && !login && !encryptedPassword) {
+            return errorResponse('At least one field must be provided', 400);
+        }
+
+        const existing = await docClient.send(
+            new GetCommand({
+                TableName: process.env.TABLE_NAME || 'passwords',
+                Key: {
+                    id: passwordId
+                },
+            })
+        );
+
+        if (!existing.Item) {
+            return errorResponse('Password not found', 404);
+        }
+
+        if (existing.Item.userId !== session.userId) {
+            return errorResponse('Forbidden: You do not own this password', 403);
+        }
+
+        const updateExpressions = [];
+        const expressionAttributeNames = {};
+        const expressionAttributeValues = {};
+
+        if (site) {
+            updateExpressions.push('#site = :site');
+            expressionAttributeNames['#site'] = 'site';
+            expressionAttributeValues[':site'] = site;
+        }
+
+        if (login) {
+            updateExpressions.push('#login = :login');
+            expressionAttributeNames['#login'] = 'login';
+            expressionAttributeValues[':login'] = login;
+        }
+
+        if (encryptedPassword) {
+            updateExpressions.push('#encryptedPassword = :encryptedPassword');
+            expressionAttributeNames['#encryptedPassword'] = 'encryptedPassword';
+            expressionAttributeValues[':encryptedPassword'] = encryptedPassword;
+        }
+
+        updateExpressions.push('#updatedAt = :updatedAt');
+        expressionAttributeNames['#updatedAt'] = 'updatedAt';
+        expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+
+        const result = await docClient.send(
+            new UpdateCommand({
+                TableName: process.env.TABLE_NAME || 'passwords',
+                Key: {
+                    id: passwordId
+                },
+                UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+                ExpressionAttributeNames: expressionAttributeNames,
+                ExpressionAttributeValues: expressionAttributeValues,
+                ReturnValues: 'ALL_NEW'
+            })
+        );
+
+        return successResponse({
+            id: result.Attributes.id,
+            site: result.Attributes.site,
+            login: result.Attributes.login,
+            encryptedPassword: result.Attributes.encryptedPassword,
+            updatedAt: result.Attributes.updatedAt,
+        });
+
+    } catch (error) {
+        return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
     }
-
-    const body = JSON.parse(event.body || '{}');
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        message: "MOCK UPDATE SUCCESS",
-        receivedId: passwordId,
-        receivedBody: body
-      })
-    };
-
-  } catch (error) {
-    console.error("Mock update error:", error);
-    return { statusCode: 500, body: JSON.stringify({ message: "Mock error" }) };
-  }
 };
