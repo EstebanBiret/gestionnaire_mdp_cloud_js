@@ -53,6 +53,7 @@ $lambdas = @(
     @{ Name = "logout";     Path = "auth/logout";          Include = @("handler.js") }
     @{ Name = "login";      Path = "auth/login";           Include = @("handler.js") }
     @{ Name = "authorizer"; Path = "auth/authorizer";      Include = @("handler.js") }
+    @{ Name = "logs";       Path = "sqs/logs";             Include = @("handler.js") }
 )
 
 foreach ($lambda in $lambdas) {

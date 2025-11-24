@@ -23,5 +23,6 @@ provider "aws" {
     iam        = var.endpoint
     s3         = var.endpoint
     dynamodb   = var.endpoint
+    sqs        = var.endpoint  
   }
 }

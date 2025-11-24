@@ -10,6 +10,7 @@ resource "aws_lambda_function" "getAll" {
   environment {
     variables = {
       TABLE_NAME        = aws_dynamodb_table.passwords.name
+      LOGS_QUEUE_URL    = aws_sqs_queue.logs_queue.url
       DYNAMODB_ENDPOINT = var.endpoint
     }
   }
@@ -27,6 +28,7 @@ resource "aws_lambda_function" "create" {
   environment {
     variables = {
       TABLE_NAME        = aws_dynamodb_table.passwords.name
+      LOGS_QUEUE_URL    = aws_sqs_queue.logs_queue.url
       DYNAMODB_ENDPOINT = var.endpoint
     }
   }
@@ -43,6 +45,7 @@ resource "aws_lambda_function" "delete" {
   environment {
     variables = {
       TABLE_NAME        = aws_dynamodb_table.passwords.name
+      LOGS_QUEUE_URL    = aws_sqs_queue.logs_queue.url
       DYNAMODB_ENDPOINT = var.endpoint
     }
   }
@@ -59,6 +62,7 @@ resource "aws_lambda_function" "update" {
   environment {
     variables = {
       TABLE_NAME        = aws_dynamodb_table.passwords.name
+      LOGS_QUEUE_URL    = aws_sqs_queue.logs_queue.url
       DYNAMODB_ENDPOINT = var.endpoint
     }
   }
@@ -123,4 +127,24 @@ resource "aws_lambda_function" "authorizer" {
       USERS_TABLE = aws_dynamodb_table.users.name
     }
   }
+}
+
+resource "aws_lambda_function" "sqs_logs" {
+  function_name = "sqs_logs"
+  runtime       = "nodejs18.x"
+  handler       = "handler.handler"
+  filename      = "${local.dist_path}/logs.zip"
+  role          = aws_iam_role.lambda_exec.arn
+
+  environment {
+    variables = {
+      LOGS_TABLE = aws_dynamodb_table.logs.name
+    }
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "logs_trigger" {
+  event_source_arn  = aws_sqs_queue.logs_queue.arn
+  function_name     = aws_lambda_function.sqs_logs.arn
+  batch_size        = 10
 }
