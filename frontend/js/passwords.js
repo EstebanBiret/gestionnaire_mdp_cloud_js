@@ -27,9 +27,10 @@ export async function loadPasswords() {
 
 export function displayPasswords(passwords) {
     const container = document.getElementById("passwordsList");
+    const emptyState = document.getElementById("emptyState");
 
     if (!passwords || passwords.length === 0) {
-        container.innerHTML = `
+        emptyState.innerHTML = `
             <div class="empty-state">
                 <h2>Aucun mot de passe enregistré</h2>
                 <p>Commencez par ajouter votre premier mot de passe !</p>
@@ -37,7 +38,7 @@ export function displayPasswords(passwords) {
         `;
         return;
     }
-
+    emptyState.innerHTML = "";
     passwordById.clear();
 
     container.innerHTML = passwords.map(pwd => {
