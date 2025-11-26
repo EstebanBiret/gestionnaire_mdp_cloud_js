@@ -5,6 +5,45 @@ import { getSessionId, logout } from "./auth.js";
 
 const passwordById = new Map();
 
+export function showToast(message, type = "info", duration = 3000) {
+    const container = document.getElementById("toastContainer");
+
+    container.innerHTML = "";
+
+    const toast = document.createElement("div");
+    toast.classList.add("toast", type);
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = "fadeOut 0.3s forwards";
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+export function showConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("confirmModal");
+        const msg = document.getElementById("confirmMessage");
+        const yesBtn = document.getElementById("confirmYes");
+        const noBtn = document.getElementById("confirmNo");
+
+        msg.textContent = message;
+        modal.style.display = "block";
+
+        yesBtn.onclick = () => {
+            modal.style.display = "none";
+            resolve(true);
+        };
+
+        noBtn.onclick = () => {
+            modal.style.display = "none";
+            resolve(false);
+        };
+    });
+}
+
 export async function loadPasswords() {
     const sessionId = getSessionId();
 
@@ -143,6 +182,12 @@ export async function savePassword() {
 
         closeModal();
         loadPasswords();
+
+        if (editingPasswordId.value) {
+            showToast("Mot de passe modifié avec succès", "success");
+        } else {
+            showToast("Mot de passe ajouté avec succès", "success");
+        }
     } catch (error) {
         document.getElementById("modalError").textContent = error.message;
     }
@@ -151,9 +196,8 @@ export async function savePassword() {
 export async function deletePassword(id) {
     const sessionId = getSessionId();
 
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?")) {
-        return;
-    }
+    const confirmed = await showConfirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?");
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${API_URL}/passwords/${id}`, {
@@ -172,8 +216,9 @@ export async function deletePassword(id) {
         }
 
         loadPasswords();
+        showToast("Mot de passe supprimé avec succès", "success");
     } catch (error) {
-        alert(error.message);
+        showToast(error.message, "error");
     }
 }
 
@@ -217,6 +262,6 @@ window.togglePassword = function (id, value) {
 
 window.copyPassword = function (value) {
     navigator.clipboard.writeText(value)
-        .then(() => alert("Mot de passe copié !"))
-        .catch(() => alert("Impossible de copier le mot de passe"));
+        .then(() => showToast("Mot de passe copié !", "success"))
+        .catch(() => showToast("Impossible de copier le mot de passe", "error"));
 };
