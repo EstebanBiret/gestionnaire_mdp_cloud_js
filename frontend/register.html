@@ -9,16 +9,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription - Gestionnaire de MDP</title>
+    <title>Inscription - KeepPass</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-
+<body class="register-page">
+<header class="site-header">
+    <h1 class="site-title">KeepPass</h1>
+    <p class="site-tagline">Stockez, gérez et sécurisez vos mots de passe facilement.</p>
+</header>
 <div id="registerPage" class="page">
     <div class="container">
         <div class="card">
-            <h1>Gestionnaire de Mots de Passe</h1>
-
             <form onsubmit="register(); return false;" id="registerForm">
                 <h2>Inscription</h2>
                 <input type="email" id="email" placeholder="Email" />
@@ -36,6 +37,11 @@
         </div>
     </div>
 </div>
-
+<footer class="site-footer">
+    <p>© 2025 - KeepPass • Sécurisé & Privé</p>
+</footer>
 </body>
+<div class="bg-shape bg-purple"></div>
+<div class="bg-shape bg-blue"></div>
+<div class="bg-shape bg-cyan"></div>
 </html>
