@@ -1,7 +1,7 @@
 import { API_URL } from "../config.js";
 import { escapeHtml } from "./utils.js";
 import { closeModal, editingPasswordId, setEditingPasswordId } from "./modal.js";
-import { getSessionId, logout } from "./auth.js";
+import { logout } from "./auth.js";
 
 const passwordById = new Map();
 
@@ -45,11 +45,13 @@ export function showConfirm(message) {
 }
 
 export async function loadPasswords() {
-    const sessionId = getSessionId();
-
     try {
         const response = await fetch(`${API_URL}/passwords`, {
-            headers: { "Authorization": `Bearer ${sessionId}` }
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (response.status === 401) {
@@ -60,7 +62,6 @@ export async function loadPasswords() {
         const passwords = await response.json();
         displayPasswords(passwords);
     } catch (err) {
-
     }
 }
 
@@ -133,7 +134,6 @@ export function displayPasswords(passwords) {
 }
 
 export async function savePassword() {
-    const sessionId = getSessionId();
     const site = document.getElementById("modalSite").value;
     const login = document.getElementById("modalLogin").value;
     const password = document.getElementById("modalPassword").value;
@@ -163,9 +163,9 @@ export async function savePassword() {
 
         const response = await fetch(url, {
             method,
+            credentials: 'include',
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${sessionId}`
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({ site, login, encryptedPassword })
         });
@@ -195,15 +195,17 @@ export async function savePassword() {
 }
 
 export async function deletePassword(id) {
-    const sessionId = getSessionId();
-
+    
     const confirmed = await showConfirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?");
     if (!confirmed) return;
 
     try {
         const response = await fetch(`${API_URL}/passwords/${id}`, {
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${sessionId}` }
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (response.status === 401) {

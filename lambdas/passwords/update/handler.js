@@ -1,7 +1,7 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
+const { successResponse, errorResponse, getAuthenticatedUser } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
     ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
@@ -23,11 +23,8 @@ const sqs = new SQSClient({
 
 exports.handler = async (event) => {
     try {
-        const sessionId = extractSessionId(event);
-        if (!sessionId) return errorResponse('Unauthorized', 401);
-
-        const session = await validateSession(sessionId, docClient);
-        if (!session) return errorResponse('Invalid or expired session', 401);
+        const user = await getAuthenticatedUser(event, docClient);
+        if (!user) return errorResponse("Unauthorized", 401);
 
         const passwordId = event.pathParameters?.id;
         if (!passwordId) {
@@ -54,8 +51,8 @@ exports.handler = async (event) => {
             return errorResponse('Password not found', 404);
         }
 
-        if (existing.Item.userId !== session.userId) {
-            return errorResponse('Forbidden: You do not own this password', 403);
+        if (existing.Item.userId !== user.userId) {
+            return errorResponse('Attention filou des bois : Vous ne possédez pas ce mot de passe', 403);
         }
 
         const updateExpressions = [];
@@ -101,8 +98,8 @@ exports.handler = async (event) => {
             QueueUrl: process.env.LOGS_QUEUE_URL,
             MessageBody: JSON.stringify({
                 type: "UPDATE_PASSWORD",
-                userId: session.userId,
-                passwordId,
+                userId: user.userId,
+                id: passwordId,
                 timestamp: Date.now()
             })
         }));

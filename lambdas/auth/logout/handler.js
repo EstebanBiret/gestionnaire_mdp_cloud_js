@@ -16,17 +16,26 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        const authHeader = event.headers?.Authorization || event.headers?.authorization;
-        const token = authHeader?.replace(/^Bearer\s+/i, '');
+        const cookieHeader = event.headers?.Cookie || event.headers?.cookie;
+        let token = null;
+
+        if (cookieHeader) {
+            const match = cookieHeader.match(/sessionToken=([^;]+)/);
+            if (match) token = match[1];
+        }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': 'http://localhost:4566',
+            'Access-Control-Allow-Credentials': true,
+            'Set-Cookie': 'sessionToken=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'
+        };
 
         if (!token) {
             return {
-                statusCode: 401,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ message: 'Token d\'autorisation requis' })
+                statusCode: 200,
+                headers: headers,
+                body: JSON.stringify({ message: 'Session déjà inactive' })
             };
         }
 
@@ -41,34 +50,22 @@ exports.handler = async (event) => {
 
         const result = await docClient.send(queryCommand);
 
-        if (!result.Items || result.Items.length === 0) {
-            return {
-                statusCode: 401,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ message: 'Token invalide ou expiré' })
-            };
+        if (result.Items && result.Items.length > 0) {
+            const user = result.Items[0];
+
+            const updateCommand = new UpdateCommand({
+                TableName: USERS_TABLE,
+                Key: { userId: user.userId },
+                UpdateExpression: 'REMOVE sessionToken, sessionExpiry',
+                ConditionExpression: 'attribute_exists(userId)'
+            });
+
+            await docClient.send(updateCommand);
         }
-
-        const user = result.Items[0];
-
-        const updateCommand = new UpdateCommand({
-            TableName: USERS_TABLE,
-            Key: { userId: user.userId },
-            UpdateExpression: 'REMOVE sessionToken, sessionExpiry',
-            ConditionExpression: 'attribute_exists(userId)'
-        });
-
-        await docClient.send(updateCommand);
 
         return {
             statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
+            headers: headers,
             body: JSON.stringify({ message: 'Déconnexion réussie' })
         };
 
@@ -77,7 +74,8 @@ exports.handler = async (event) => {
             statusCode: 500,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': 'http://localhost:4566',
+                'Access-Control-Allow-Credentials': true
             },
             body: JSON.stringify({ message: 'Erreur interne du serveur' })
         };

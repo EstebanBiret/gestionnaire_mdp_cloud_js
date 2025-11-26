@@ -65,16 +65,20 @@ exports.handler = async (event) => {
             Item: newUser
         }));
 
+        const cookieString = `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`;
+
         return {
             statusCode: 201,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'http://localhost:4566',
+                'Access-Control-Allow-Credentials': true,
+                'Set-Cookie': cookieString
+            },
             body: JSON.stringify({
-                message: 'Utilisateur créé et connecté avec succès',
-                userId,
-                email,
-                firstname,
-                lastname,
-                sessionToken
+                message: 'Inscription réussie',
+                userId: userId,
+                user: { email, firstname, lastname }
             }),
         };
 

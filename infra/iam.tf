@@ -50,31 +50,3 @@ resource "aws_iam_role_policy_attachment" "lambda_dynamodb" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.lambda_dynamodb.arn
 }
-
-resource "aws_iam_role" "api_gateway_authorizer" {
-  name = "api-gateway-authorizer-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "apigateway.amazonaws.com"
-      }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "api_gateway_authorizer_invoke" {
-  role = aws_iam_role.api_gateway_authorizer.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action   = "lambda:InvokeFunction"
-      Effect   = "Allow"
-      Resource = aws_lambda_function.authorizer.arn
-    }]
-  })
-}
