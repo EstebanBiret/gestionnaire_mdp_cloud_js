@@ -21,13 +21,11 @@ const sqs = new SQSClient({
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT create:', JSON.stringify(event));
         const user = await getAuthenticatedUser(event, docClient);
 
         if (!user) {
             return errorResponse('Unauthorized', 401);
         }
-        // ------------------------------------
 
         const body = event.body ? JSON.parse(event.body) : {};
         const { site, login, encryptedPassword } = body;
@@ -63,14 +61,12 @@ exports.handler = async (event) => {
                     })
                 }));
             } catch (sqsError) {
-                console.warn("Erreur SQS (non bloquant):", sqsError.message);
             }
         }
 
         return successResponse(passwordItem, 201);
 
     } catch (error) {
-        console.error("Erreur create:", error);
         return errorResponse("Erreur interne du serveur", 500);
     }
 };

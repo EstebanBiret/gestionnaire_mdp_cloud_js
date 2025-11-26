@@ -27,11 +27,6 @@ export async function initApp() {
         loadPasswords();
 
     } catch (error) {
-        console.warn("Session invalide ou expirée, redirection vers login.", error);
-
-        localStorage.removeItem("currentUser");
-        localStorage.removeItem("sessionToken");
-
         window.location.href = "login.html";
     }
 }

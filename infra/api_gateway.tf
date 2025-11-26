@@ -48,12 +48,11 @@ resource "aws_api_gateway_resource" "auth_me" {
   path_part   = "me"
 }
 
-
 # ==============================================================================
 # MÉTHODES & INTÉGRATIONS
 # ==============================================================================
 
-# GET /auth/me (DOIT ÊTRE PROTÉGÉ)
+# GET /auth/me
 resource "aws_api_gateway_method" "get_auth_me" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.auth_me.id
@@ -112,8 +111,6 @@ resource "aws_api_gateway_method" "delete_password" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.password_by_id.id
   http_method   = "DELETE"
-
-  # CORRECTION
   authorization = "NONE"
 }
 
@@ -131,8 +128,6 @@ resource "aws_api_gateway_method" "update_password" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.password_by_id.id
   http_method   = "PUT"
-
-  # CORRECTION
   authorization = "NONE"
 }
 
@@ -167,8 +162,6 @@ resource "aws_api_gateway_method" "post_auth_logout" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.auth_logout.id
   http_method   = "POST"
-
-  # CORRECTION
   authorization = "NONE"
 }
 
@@ -186,7 +179,6 @@ resource "aws_api_gateway_method" "post_auth_login" {
   rest_api_id   = aws_api_gateway_rest_api.password_api.id
   resource_id   = aws_api_gateway_resource.auth_login.id
   http_method   = "POST"
-
   authorization = "NONE"
 }
 

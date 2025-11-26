@@ -52,14 +52,12 @@ exports.handler = async (event) => {
                     })
                 }));
             } catch (e) {
-                console.warn("SQS Error:", e.message);
             }
         }
 
         return successResponse(items);
 
     } catch (error) {
-        console.error("Error getAll:", error);
         return errorResponse(`Erreur interne: ${error.message}`, 500);
     }
 };

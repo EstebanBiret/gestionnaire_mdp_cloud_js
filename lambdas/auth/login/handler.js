@@ -18,14 +18,11 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT login:', JSON.stringify(event));
-
         let body = event.body;
         if (typeof body === 'string') {
             try {
                 body = JSON.parse(body);
             } catch (e) {
-                console.error("Erreur parsing body:", e);
                 body = {};
             }
         } else if (!body) {
@@ -33,8 +30,6 @@ exports.handler = async (event) => {
         }
 
         const { login, password } = body;
-        console.log("Login reçu:", login, "Password reçu:", password ? "***" : "null"); // Debug
-
         if (!login || !password) {
             return {
                 statusCode: 400,
@@ -57,7 +52,7 @@ exports.handler = async (event) => {
                     'Access-Control-Allow-Origin': 'http://localhost:4566',
                     'Access-Control-Allow-Credentials': true
                 },
-                body: JSON.stringify({ message: 'Identifiants incorrects' }),
+                body: JSON.stringify({ message: 'Ce compte n\'existe pas' }),
             };
         }
 
@@ -71,7 +66,7 @@ exports.handler = async (event) => {
                     'Access-Control-Allow-Origin': 'http://localhost:4566',
                     'Access-Control-Allow-Credentials': true
                 },
-                body: JSON.stringify({ message: 'Identifiants incorrects' }),
+                body: JSON.stringify({ message: 'Mot de passe incorrect' }),
             };
         }
 
@@ -90,9 +85,6 @@ exports.handler = async (event) => {
             }
         }));
 
-        console.log(`User ${user.email} logged in successfully`);
-
-        // 4. Création du cookie sécurisé
         const cookieString = `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`;
 
         return {
@@ -114,7 +106,6 @@ exports.handler = async (event) => {
             }),
         };
     } catch (error) {
-        console.error('Error in login:', error);
         return {
             statusCode: 500,
             headers: {

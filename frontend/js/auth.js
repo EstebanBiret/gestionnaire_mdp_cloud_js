@@ -18,9 +18,6 @@ export async function initLoginRegisterPages() {
     const authData = await checkAuth();
 
     if (authData && authData.authenticated) {
-        if (authData.user) {
-            localStorage.setItem("currentUser", JSON.stringify(authData.user));
-        }
         window.location.href = "index.html";
     }
 }
@@ -47,13 +44,6 @@ export async function login() {
         if (!response.ok) {
             throw new Error(data.message || "Identifiants incorrects");
         }
-
-        const userInfo = {
-            userId: data.userId,
-            email: data.login || email
-        };
-        localStorage.setItem("currentUser", JSON.stringify(userInfo));
-
         redirectToApp();
 
     } catch (err) {
@@ -106,14 +96,6 @@ export async function register() {
         if (!response.ok) {
             throw new Error(data.message || "Erreur lors de l'inscription");
         }
-
-        localStorage.setItem("currentUser", JSON.stringify({
-            userId: data.userId,
-            email: email,
-            firstname,
-            lastname
-        }));
-
         redirectToApp();
 
     } catch (err) {
@@ -128,20 +110,7 @@ export async function logout() {
             credentials: 'include'
         });
     } catch (e) {
-        console.error("Erreur logout", e);
     } finally {
-        localStorage.removeItem("currentUser");
-        localStorage.removeItem("sessionToken");
         window.location.href = "login.html";
     }
-}
-
-
-export function getSessionId() {
-    return null;
-}
-export function getCurrentUser() {
-    try {
-        return JSON.parse(localStorage.getItem("currentUser") || "null");
-    } catch (e) { return null; }
 }

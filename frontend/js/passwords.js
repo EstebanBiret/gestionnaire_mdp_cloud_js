@@ -62,7 +62,6 @@ export async function loadPasswords() {
         const passwords = await response.json();
         displayPasswords(passwords);
     } catch (err) {
-        console.error("Erreur chargement:", err);
     }
 }
 
@@ -135,7 +134,6 @@ export function displayPasswords(passwords) {
 }
 
 export async function savePassword() {
-    const sessionId = getSessionId();
     const site = document.getElementById("modalSite").value;
     const login = document.getElementById("modalLogin").value;
     const password = document.getElementById("modalPassword").value;
@@ -197,9 +195,9 @@ export async function savePassword() {
 }
 
 export async function deletePassword(id) {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?")) {
-        return;
-    }
+    
+    const confirmed = await showConfirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?");
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${API_URL}/passwords/${id}`, {

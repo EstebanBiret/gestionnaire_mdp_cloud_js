@@ -16,8 +16,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT logout:', JSON.stringify(event));
-
         const cookieHeader = event.headers?.Cookie || event.headers?.cookie;
         let token = null;
 
@@ -63,7 +61,6 @@ exports.handler = async (event) => {
             });
 
             await docClient.send(updateCommand);
-            console.log(`User ${user.userId} logged out successfully`);
         }
 
         return {
@@ -73,7 +70,6 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error('Error in logout:', error);
         return {
             statusCode: 500,
             headers: {

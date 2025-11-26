@@ -21,14 +21,9 @@ const sqs = new SQSClient({
 
 exports.handler = async (event) => {
     try {
-        console.log('EVENT delete:', JSON.stringify(event));
-
-
         const user = await getAuthenticatedUser(event, docClient);
 
-        if (!user) {
-            return errorResponse('Unauthorized', 401);
-        }
+        if (!user) {return errorResponse('Unauthorized', 401);}
 
         const passwordId = event.pathParameters?.id;
         if (!passwordId) {
@@ -73,14 +68,12 @@ exports.handler = async (event) => {
                     })
                 }));
             } catch (sqsError) {
-                console.warn("Erreur SQS (non bloquant):", sqsError.message);
             }
         }
 
         return successResponse({ message: 'Mot de passe supprimé avec succès' });
 
     } catch (error) {
-        console.error("Erreur delete:", error);
         return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
     }
 };

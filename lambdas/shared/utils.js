@@ -68,7 +68,6 @@ const getAuthenticatedUser = async (event) => {
         }
         return null;
     } catch (e) {
-        console.error("Auth Error:", e);
         return null;
     }
 };
