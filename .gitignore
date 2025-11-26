@@ -18,3 +18,5 @@ package-lock.json
 
 # Fichier de config généré par Tofu
 /frontend/config.js
+
+/tmp_shared/
