@@ -180,14 +180,15 @@ export async function savePassword() {
             throw new Error(data.message || data.error || "Erreur lors de l'enregistrement");
         }
 
-        closeModal();
-        loadPasswords();
-
         if (editingPasswordId.value) {
             showToast("Mot de passe modifié avec succès", "success");
         } else {
             showToast("Mot de passe ajouté avec succès", "success");
         }
+
+        closeModal();
+        loadPasswords();
+
     } catch (error) {
         document.getElementById("modalError").textContent = error.message;
     }
