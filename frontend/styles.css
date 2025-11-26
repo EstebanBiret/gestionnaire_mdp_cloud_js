@@ -341,3 +341,57 @@ button:hover {
 .toggle-password:hover {    
     color: #333;
 }
+
+#confirmModal .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+#confirmModal .modal-actions {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+
+#toastContainer {
+    position: fixed;
+    bottom: 20px;       
+    left: 50%;           
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;           
+    z-index: 9999;       
+    pointer-events: none; 
+}
+
+.toast {
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    min-width: 200px;
+    text-align: center;
+    font-weight: 500;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease forwards;
+    animation-delay: 0s, 2s;
+    pointer-events: auto; 
+}
+
+.toast.info { background-color: #2d9cdb; }
+.toast.success { background-color: #27ae60; }
+.toast.error { background-color: #eb5757; }
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
