@@ -130,6 +130,7 @@ resource "aws_lambda_function" "authorizer" {
 }
 
 resource "aws_lambda_function" "sqs_logs" {
+  depends_on    = [null_resource.build_lambdas]
   function_name = "sqs_logs"
   runtime       = "nodejs18.x"
   handler       = "handler.handler"
