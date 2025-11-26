@@ -185,7 +185,6 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.post_auth_login_integration
   ]
   rest_api_id = aws_api_gateway_rest_api.password_api.id
-  stage_name  = "dev"
 }
 
 resource "aws_api_gateway_authorizer" "lambda_authorizer" {
@@ -195,4 +194,10 @@ resource "aws_api_gateway_authorizer" "lambda_authorizer" {
   authorizer_credentials = aws_iam_role.api_gateway_authorizer.arn
   type                   = "TOKEN"
   identity_source        = "method.request.header.Authorization"
+}
+
+resource "aws_api_gateway_stage" "dev" {
+  stage_name    = "dev"
+  rest_api_id   = aws_api_gateway_rest_api.password_api.id
+  deployment_id = aws_api_gateway_deployment.api_deployment.id
 }

@@ -97,7 +97,7 @@ export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_ap
 EOF
 
   depends_on = [
-    aws_api_gateway_deployment.api_deployment
+    aws_api_gateway_stage.dev
   ]
 }
 
@@ -109,7 +109,7 @@ export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_ap
 EOF
 
   depends_on = [
-    aws_api_gateway_deployment.api_deployment
+    aws_api_gateway_stage.dev
   ]
 }
 
