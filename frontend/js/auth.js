@@ -37,7 +37,7 @@ export async function login() {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: email, password })
+            body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
@@ -50,7 +50,7 @@ export async function login() {
             localStorage.setItem("sessionToken", data.sessionToken);
             localStorage.setItem("currentUser", JSON.stringify({
                 userId: data.userId,
-                login: data.email || email
+                email: data.email || email
             }));
             redirectToApp();
         } else {
@@ -64,10 +64,10 @@ export async function login() {
 
 export async function register() {
     const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const passwordConfirm = document.getElementById("passwordConfirm").value;
     const firstname = document.getElementById("firstname").value;
     const lastname = document.getElementById("lastname").value;
+    const password = document.getElementById("password").value;
+    const passwordConfirm = document.getElementById("passwordConfirm").value;
 
     if (!email || !password || !passwordConfirm || !firstname || !lastname) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
@@ -91,10 +91,10 @@ export async function register() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                login: email,
-                password,
+                email,
                 firstname,
-                lastname
+                lastname,
+                password
             })
         });
 
@@ -108,7 +108,7 @@ export async function register() {
             localStorage.setItem("sessionToken", data.sessionToken);
             localStorage.setItem("currentUser", JSON.stringify({
                 userId: data.userId,
-                login: data.login || email
+                email: data.email || email
             }));
             redirectToApp();
         } else {

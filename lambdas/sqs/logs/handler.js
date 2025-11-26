@@ -13,7 +13,6 @@ const client = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
-    console.log("Received SQS event:", JSON.stringify(event, null, 2));
 
     for (const record of event.Records) {
         try {
@@ -33,9 +32,7 @@ exports.handler = async (event) => {
                 Item: logItem
             }));
 
-            console.log("Inserted log item:", logItem);
         } catch (error) {
-            console.error("Error processing SQS message:", error);
         }
     }
 
