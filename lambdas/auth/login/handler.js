@@ -18,25 +18,46 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
     try {
+        console.log('EVENT login:', JSON.stringify(event));
 
-        const body = JSON.parse(event.body || '{}');
-        const { email, password } = body;
+        let body = event.body;
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                console.error("Erreur parsing body:", e);
+                body = {};
+            }
+        } else if (!body) {
+            body = {};
+        }
 
-        if (!email || !password) {
+        const { login, password } = body;
+        console.log("Login reçu:", login, "Password reçu:", password ? "***" : "null"); // Debug
+
+        if (!login || !password) {
             return {
                 statusCode: 400,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': 'http://localhost:4566',
+                    'Access-Control-Allow-Credentials': true
+                },
                 body: JSON.stringify({ message: 'Email et mot de passe requis' }),
             };
         }
 
-        const user = await findUserByEmail(email);
+        const user = await findUserByEmail(login);
 
         if (!user) {
             return {
                 statusCode: 401,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Ce compte n\'existe pas' }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': 'http://localhost:4566',
+                    'Access-Control-Allow-Credentials': true
+                },
+                body: JSON.stringify({ message: 'Identifiants incorrects' }),
             };
         }
 
@@ -45,8 +66,12 @@ exports.handler = async (event) => {
         if (!isPasswordValid) {
             return {
                 statusCode: 401,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Mot de passe incorrect' }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': 'http://localhost:4566',
+                    'Access-Control-Allow-Credentials': true
+                },
+                body: JSON.stringify({ message: 'Identifiants incorrects' }),
             };
         }
 
@@ -65,20 +90,38 @@ exports.handler = async (event) => {
             }
         }));
 
+        console.log(`User ${user.email} logged in successfully`);
+
+        // 4. Création du cookie sécurisé
+        const cookieString = `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`;
+
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'http://localhost:4566',
+                'Access-Control-Allow-Credentials': true,
+                'Set-Cookie': cookieString
+            },
             body: JSON.stringify({
-                sessionToken,
+                message: 'Connexion réussie',
                 userId: user.userId,
-                email: user.email,
-                expiresAt: sessionExpiry
+                user: {
+                    email: user.email,
+                    firstname: user.firstname,
+                    lastname: user.lastname
+                }
             }),
         };
     } catch (error) {
+        console.error('Error in login:', error);
         return {
             statusCode: 500,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'http://localhost:4566',
+                'Access-Control-Allow-Credentials': true
+            },
             body: JSON.stringify({ message: 'Erreur interne du serveur' }),
         };
     }

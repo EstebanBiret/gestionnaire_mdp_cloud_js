@@ -1,17 +1,37 @@
 import { loadPasswords } from "./js/passwords.js";
+import { API_URL } from "./config.js";
 
-export function initApp() {
-    const sessionId = localStorage.getItem("sessionToken");
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-    //TODO récup cet user via authorizer au lieu de local storage
+export async function initApp() {
+    try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
 
-    if (!sessionId || sessionId === "undefined" || !currentUser) {
+        if (!response.ok) {
+            throw new Error("Non authentifié");
+        }
+
+        const data = await response.json();
+        const user = data.user;
+
+        const displayName = (user.firstname && user.lastname)
+            ? `${user.firstname} ${user.lastname}`
+            : user.email;
+
+        document.getElementById("username").textContent = displayName;
+
+        loadPasswords();
+
+    } catch (error) {
+        console.warn("Session invalide ou expirée, redirection vers login.", error);
+
+        localStorage.removeItem("currentUser");
         localStorage.removeItem("sessionToken");
+
         window.location.href = "login.html";
-        return;
     }
-
-    document.getElementById("username").textContent = currentUser.firstname + " " + currentUser.lastname;
-
-    loadPasswords();
 }

@@ -91,13 +91,14 @@ resource "aws_s3_object" "config" {
   key          = "config.js"
   acl          = "public-read"
   content_type = "application/javascript"
+  cache_control = "no-cache, no-store, must-revalidate"
 
   content = <<EOF
-export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/dev/_user_request_";
+export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/v1/_user_request_";
 EOF
 
   depends_on = [
-    aws_api_gateway_stage.dev
+    aws_api_gateway_stage.v1
   ]
 }
 
@@ -105,11 +106,11 @@ resource "local_file" "frontend_config" {
   filename = "${var.frontend_path}/config.js"
 
   content = <<EOF
-export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/dev/_user_request_";
+export const API_URL = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.password_api.id}/v1/_user_request_";
 EOF
 
   depends_on = [
-    aws_api_gateway_stage.dev
+    aws_api_gateway_stage.v1
   ]
 }
 

@@ -1,16 +1,26 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Content-Type': 'application/json',
-};
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+const endpoint = process.env.LOCALSTACK_HOSTNAME
+    ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+    : process.env.DYNAMODB_ENDPOINT;
+
+const client = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'eu-west-3',
+    endpoint: endpoint
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+const USERS_TABLE = process.env.USERS_TABLE || 'users';
+
+const ALLOWED_ORIGIN = 'http://localhost:4566';
 
 const successResponse = (body, statusCode = 200) => {
     return {
         statusCode,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
             'Access-Control-Allow-Credentials': true,
         },
         body: JSON.stringify(body),
@@ -22,42 +32,28 @@ const errorResponse = (message, statusCode = 500) => {
         statusCode,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
             'Access-Control-Allow-Credentials': true,
         },
         body: JSON.stringify({ message }),
     };
 };
 
-const extractSessionId = (event) => {
-    const headers = event.headers || {};
-    const authHeader = headers.Authorization || headers.authorization;
-
-    if (!authHeader) return null;
-
-    const parts = authHeader.split(' ');
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-        return parts[1];
-    }
-    return authHeader;
-};
-
-const validateSession = async (sessionId, docClient) => {
-    const { GetCommand } = require('@aws-sdk/lib-dynamodb');
-
-    if (!sessionId) return null;
-
-    const USERS_TABLE = process.env.USERS_TABLE || 'users';
-
+const getAuthenticatedUser = async (event) => {
     try {
-        const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+        const cookies = event.headers?.Cookie || event.headers?.cookie;
+        if (!cookies) return null;
 
-        const command = new ScanCommand({
+        const match = cookies.match(/sessionToken=([^;]+)/);
+        const token = match ? match[1] : null;
+
+        if (!token) return null;
+
+        const command = new QueryCommand({
             TableName: USERS_TABLE,
-            FilterExpression: 'sessionToken = :token',
-            ExpressionAttributeValues: {
-                ':token': sessionId
-            }
+            IndexName: 'sessionToken-index',
+            KeyConditionExpression: 'sessionToken = :token',
+            ExpressionAttributeValues: { ':token': token }
         });
 
         const result = await docClient.send(command);
@@ -71,7 +67,8 @@ const validateSession = async (sessionId, docClient) => {
             }
         }
         return null;
-    } catch (error) {
+    } catch (e) {
+        console.error("Auth Error:", e);
         return null;
     }
 };
@@ -79,6 +76,5 @@ const validateSession = async (sessionId, docClient) => {
 module.exports = {
     successResponse,
     errorResponse,
-    extractSessionId,
-    validateSession
+    getAuthenticatedUser
 };

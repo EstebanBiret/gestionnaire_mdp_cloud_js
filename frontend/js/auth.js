@@ -1,25 +1,26 @@
 import { API_URL } from "../config.js";
 import { redirectToApp } from "./utils.js";
 
-export function getSessionId() {
-    const token = localStorage.getItem("sessionToken");
-    if (!token || token === "undefined" || token === "null") return null;
-    return token;
-}
-
-export function getCurrentUser() {
+export async function checkAuth() {
     try {
-        return JSON.parse(localStorage.getItem("currentUser") || "null");
+        const response = await fetch(`${API_URL}/auth/me`, {
+            method: 'GET',
+            credentials: 'include', // Envoie le cookie
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return response.ok ? await response.json() : null;
     } catch (e) {
         return null;
     }
 }
 
-export function initLoginRegisterPages() {
-    const sessionId = getSessionId();
-    const currentUser = getCurrentUser();
+export async function initLoginRegisterPages() {
+    const authData = await checkAuth();
 
-    if (sessionId && currentUser) {
+    if (authData && authData.authenticated) {
+        if (authData.user) {
+            localStorage.setItem("currentUser", JSON.stringify(authData.user));
+        }
         window.location.href = "index.html";
     }
 }
@@ -37,7 +38,8 @@ export async function login() {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            credentials: 'include',
+            body: JSON.stringify({ login: email, password })
         });
 
         const data = await response.json();
@@ -46,16 +48,13 @@ export async function login() {
             throw new Error(data.message || "Identifiants incorrects");
         }
 
-        if (data.sessionToken) {
-            localStorage.setItem("sessionToken", data.sessionToken);
-            localStorage.setItem("currentUser", JSON.stringify({
-                userId: data.userId,
-                email: data.email || email
-            }));
-            redirectToApp();
-        } else {
-            throw new Error("Erreur: Token manquant dans la réponse");
-        }
+        const userInfo = {
+            userId: data.userId,
+            email: data.login || email
+        };
+        localStorage.setItem("currentUser", JSON.stringify(userInfo));
+
+        redirectToApp();
 
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
@@ -67,9 +66,11 @@ export async function register() {
     const firstname = document.getElementById("firstname").value;
     const lastname = document.getElementById("lastname").value;
     const password = document.getElementById("password").value;
-    const passwordConfirm = document.getElementById("passwordConfirm").value;
 
-    if (!email || !password || !passwordConfirm || !firstname || !lastname) {
+    const confirmInput = document.getElementById("passwordConfirm");
+    const passwordConfirm = confirmInput ? confirmInput.value : password;
+
+    if (!email || !password || !firstname || !lastname) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
         return;
     }
@@ -90,7 +91,9 @@ export async function register() {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: 'include',
             body: JSON.stringify({
+                login: email,
                 email,
                 firstname,
                 lastname,
@@ -104,24 +107,41 @@ export async function register() {
             throw new Error(data.message || "Erreur lors de l'inscription");
         }
 
-        if (data.sessionToken) {
-            localStorage.setItem("sessionToken", data.sessionToken);
-            localStorage.setItem("currentUser", JSON.stringify({
-                userId: data.userId,
-                email: data.email || email
-            }));
-            redirectToApp();
-        } else {
-            window.location.href = "login.html";
-        }
+        localStorage.setItem("currentUser", JSON.stringify({
+            userId: data.userId,
+            email: email,
+            firstname,
+            lastname
+        }));
+
+        redirectToApp();
 
     } catch (err) {
         document.getElementById("authError").textContent = err.message;
     }
 }
 
-export function logout() {
-    localStorage.removeItem("sessionToken");
-    localStorage.removeItem("currentUser");
-    window.location.href = "login.html";
+export async function logout() {
+    try {
+        await fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (e) {
+        console.error("Erreur logout", e);
+    } finally {
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("sessionToken");
+        window.location.href = "login.html";
+    }
+}
+
+
+export function getSessionId() {
+    return null;
+}
+export function getCurrentUser() {
+    try {
+        return JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (e) { return null; }
 }

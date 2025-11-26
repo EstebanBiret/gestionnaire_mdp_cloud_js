@@ -1,7 +1,7 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
+const { successResponse, errorResponse, getAuthenticatedUser } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
     ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
@@ -16,18 +16,19 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const sqs = new SQSClient({
     region: process.env.AWS_REGION || "eu-west-3",
-    endpoint: process.env.LOCALSTACK_HOSTNAME
-        ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
-        : process.env.SQS_ENDPOINT
+    endpoint: endpoint
 });
 
 exports.handler = async (event) => {
     try {
-        const sessionId = extractSessionId(event);
-        if (!sessionId) return errorResponse('Unauthorized', 401);
+        console.log('EVENT delete:', JSON.stringify(event));
 
-        const session = await validateSession(sessionId, docClient);
-        if (!session) return errorResponse('Invalid or expired session', 401);
+
+        const user = await getAuthenticatedUser(event, docClient);
+
+        if (!user) {
+            return errorResponse('Unauthorized', 401);
+        }
 
         const passwordId = event.pathParameters?.id;
         if (!passwordId) {
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
             return errorResponse('Password not found', 404);
         }
 
-        if (existing.Item.userId !== session.userId) {
+        if (existing.Item.userId !== user.userId) {
             return errorResponse('Attention filou des bois : Vous ne possédez pas ce mot de passe', 403);
         }
 
@@ -60,20 +61,26 @@ exports.handler = async (event) => {
             })
         );
 
-        await sqs.send(new SendMessageCommand({
-            QueueUrl: process.env.LOGS_QUEUE_URL,
-            MessageBody: JSON.stringify({
-                type: "DELETE_PASSWORD",
-                userId: session.userId,
-                id: passwordId,
-                timestamp: Date.now()
-            })
-        }));
-
+        if (process.env.LOGS_QUEUE_URL) {
+            try {
+                await sqs.send(new SendMessageCommand({
+                    QueueUrl: process.env.LOGS_QUEUE_URL,
+                    MessageBody: JSON.stringify({
+                        type: "DELETE_PASSWORD",
+                        userId: user.userId,
+                        id: passwordId,
+                        timestamp: Date.now()
+                    })
+                }));
+            } catch (sqsError) {
+                console.warn("Erreur SQS (non bloquant):", sqsError.message);
+            }
+        }
 
         return successResponse({ message: 'Mot de passe supprimé avec succès' });
 
     } catch (error) {
+        console.error("Erreur delete:", error);
         return errorResponse(`Erreur interne du serveur : ${error.message}`, 500);
     }
 };

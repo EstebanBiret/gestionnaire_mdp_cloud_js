@@ -1,16 +1,18 @@
 import { API_URL } from "../config.js";
 import { escapeHtml } from "./utils.js";
 import { closeModal, editingPasswordId, setEditingPasswordId } from "./modal.js";
-import { getSessionId, logout } from "./auth.js";
+import { logout } from "./auth.js";
 
 const passwordById = new Map();
 
 export async function loadPasswords() {
-    const sessionId = getSessionId();
-
     try {
         const response = await fetch(`${API_URL}/passwords`, {
-            headers: { "Authorization": `Bearer ${sessionId}` }
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (response.status === 401) {
@@ -21,19 +23,16 @@ export async function loadPasswords() {
         const passwords = await response.json();
         displayPasswords(passwords);
     } catch (err) {
-
+        console.error("Erreur chargement:", err);
     }
 }
 
 export function displayPasswords(passwords) {
     const container = document.getElementById("passwordsList");
-    const emptyState = document.getElementById("emptyState");
-
     container.innerHTML = "";
-    emptyState.innerHTML = "";
 
     if (!passwords || passwords.length === 0) {
-        emptyState.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
                 <h2>Aucun mot de passe enregistré</h2>
                 <p>Commencez par ajouter votre premier mot de passe !</p>
@@ -94,7 +93,6 @@ export function displayPasswords(passwords) {
 }
 
 export async function savePassword() {
-    const sessionId = getSessionId();
     const site = document.getElementById("modalSite").value;
     const login = document.getElementById("modalLogin").value;
     const password = document.getElementById("modalPassword").value;
@@ -124,9 +122,9 @@ export async function savePassword() {
 
         const response = await fetch(url, {
             method,
+            credentials: 'include',
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${sessionId}`
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({ site, login, encryptedPassword })
         });
@@ -149,8 +147,6 @@ export async function savePassword() {
 }
 
 export async function deletePassword(id) {
-    const sessionId = getSessionId();
-
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce mot de passe ?")) {
         return;
     }
@@ -158,7 +154,10 @@ export async function deletePassword(id) {
     try {
         const response = await fetch(`${API_URL}/passwords/${id}`, {
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${sessionId}` }
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (response.status === 401) {
@@ -206,12 +205,12 @@ window.togglePassword = function (id, value) {
     if (span.classList.contains("password-hidden")) {
         span.textContent = value;
         span.classList.remove("password-hidden");
-        btn.textContent = "Masquer";
+        if(btn) btn.textContent = "Masquer";
     } else {
         const masked = (value === "Erreur déchiffrement") ? '•'.repeat(8) : '•'.repeat(Math.max(1, value.length));
         span.textContent = masked;
         span.classList.add("password-hidden");
-        btn.textContent = "Afficher";
+        if(btn) btn.textContent = "Afficher";
     }
 };
 

@@ -1,7 +1,7 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
+const { successResponse, errorResponse, getAuthenticatedUser } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
     ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
@@ -16,18 +16,18 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const sqs = new SQSClient({
     region: process.env.AWS_REGION || 'eu-west-3',
-    endpoint: process.env.LOCALSTACK_HOSTNAME
-        ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
-        : process.env.SQS_ENDPOINT
+    endpoint: endpoint
 });
 
 exports.handler = async (event) => {
     try {
-        const sessionId = extractSessionId(event);
-        if (!sessionId) return errorResponse('Unauthorized', 401);
+        console.log('EVENT create:', JSON.stringify(event));
+        const user = await getAuthenticatedUser(event, docClient);
 
-        const session = await validateSession(sessionId, docClient);
-        if (!session) return errorResponse('Session invalide ou expirée', 401);
+        if (!user) {
+            return errorResponse('Unauthorized', 401);
+        }
+        // ------------------------------------
 
         const body = event.body ? JSON.parse(event.body) : {};
         const { site, login, encryptedPassword } = body;
@@ -38,7 +38,7 @@ exports.handler = async (event) => {
 
         const passwordItem = {
             id: Date.now().toString() + Math.floor(Math.random() * 1000),
-            userId: session.userId,
+            userId: user.userId,
             site,
             login,
             encryptedPassword,
@@ -51,20 +51,26 @@ exports.handler = async (event) => {
             Item: passwordItem
         }));
 
-        await sqs.send(new SendMessageCommand({
-            QueueUrl: process.env.LOGS_QUEUE_URL,
-            MessageBody: JSON.stringify({
-                type: "CREATE_PASSWORD",
-                userId: session.userId,
-                site,
-                login,
-                timestamp: Date.now()
-            })
-        }));
+        if (process.env.LOGS_QUEUE_URL) {
+            try {
+                await sqs.send(new SendMessageCommand({
+                    QueueUrl: process.env.LOGS_QUEUE_URL,
+                    MessageBody: JSON.stringify({
+                        type: "CREATE_PASSWORD",
+                        userId: user.userId,
+                        site,
+                        timestamp: Date.now()
+                    })
+                }));
+            } catch (sqsError) {
+                console.warn("Erreur SQS (non bloquant):", sqsError.message);
+            }
+        }
 
         return successResponse(passwordItem, 201);
 
     } catch (error) {
+        console.error("Erreur create:", error);
         return errorResponse("Erreur interne du serveur", 500);
     }
 };
