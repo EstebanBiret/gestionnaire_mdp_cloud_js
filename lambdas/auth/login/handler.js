@@ -20,17 +20,17 @@ exports.handler = async (event) => {
     try {
 
         const body = JSON.parse(event.body || '{}');
-        const { login, password } = body;
+        const { email, password } = body;
 
-        if (!login || !password) {
+        if (!email || !password) {
             return {
                 statusCode: 400,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ message: 'Login et mot de passe requis' }),
+                body: JSON.stringify({ message: 'Email et mot de passe requis' }),
             };
         }
 
-        const user = await findUserByEmail(login);
+        const user = await findUserByEmail(email);
 
         if (!user) {
             return {
@@ -72,8 +72,6 @@ exports.handler = async (event) => {
                 sessionToken,
                 userId: user.userId,
                 email: user.email,
-                /*firstname: user.firstname,
-                lastname: user.lastname, TODO voir comment récup ces infos car on a pas ces champs dans le form de login, API pour avoir les infos du currentUser ?*/
                 expiresAt: sessionExpiry
             }),
         };
