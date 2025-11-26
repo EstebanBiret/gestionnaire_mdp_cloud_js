@@ -10,7 +10,7 @@ export function initApp() {
         return;
     }
 
-    document.getElementById("username").textContent = currentUser.login;
+    document.getElementById("username").textContent = currentUser.firstname + " " + currentUser.lastname;
 
     loadPasswords();
 }

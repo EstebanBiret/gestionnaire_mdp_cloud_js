@@ -130,6 +130,8 @@ button:hover {
 /* Actions */
 .actions {
     margin: 30px 0;    
+    justify-content: center;
+    display: flex;
 }
 
 .btn-primary {
