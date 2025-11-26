@@ -65,10 +65,11 @@ export async function login() {
 export async function register() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const passwordConfirm = document.getElementById("passwordConfirm").value;
     const firstname = document.getElementById("firstname").value;
     const lastname = document.getElementById("lastname").value;
 
-    if (!email || !password || !firstname || !lastname) {
+    if (!email || !password || !passwordConfirm || !firstname || !lastname) {
         document.getElementById("authError").textContent = "Veuillez remplir tous les champs";
         return;
     }
@@ -76,6 +77,12 @@ export async function register() {
     if (password.length < 8) {
         document.getElementById("authError").textContent =
             "Le mot de passe doit contenir au moins 8 caractères";
+        return;
+    }
+
+    if (password !== passwordConfirm) {
+        document.getElementById("authError").textContent =
+            "Les mots de passe ne correspondent pas";
         return;
     }
 

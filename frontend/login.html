@@ -16,16 +16,16 @@
 <div id="loginPage" class="page">
     <div class="container">
         <div class="card">
-            <h1>🔐 Gestionnaire de Mots de Passe</h1>
-            <div id="loginForm">
+            <h1>Gestionnaire de Mots de Passe</h1>
+            <form onsubmit="login(); return false;" id="loginForm">
                 <h2>Connexion</h2>
                 <input type="email" id="email" placeholder="Email" />
                 <input type="password" id="password" placeholder="Mot de passe" />
-                <button onclick="login()">Se connecter</button>
+                <button type="submit">Se connecter</button>
                 <p class="switch-link">
                     Pas de compte ? <a href="register.html">S'inscrire</a>
                 </p>
-            </div>
+            </form>
             <div id="authError" class="error"></div>
         </div>
     </div>

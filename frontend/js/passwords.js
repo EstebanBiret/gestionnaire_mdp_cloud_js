@@ -29,6 +29,9 @@ export function displayPasswords(passwords) {
     const container = document.getElementById("passwordsList");
     const emptyState = document.getElementById("emptyState");
 
+    container.innerHTML = "";
+    emptyState.innerHTML = "";
+
     if (!passwords || passwords.length === 0) {
         emptyState.innerHTML = `
             <div class="empty-state">
@@ -38,20 +41,20 @@ export function displayPasswords(passwords) {
         `;
         return;
     }
-    emptyState.innerHTML = "";
+
     passwordById.clear();
 
-    container.innerHTML = passwords.map(pwd => {
+    passwords.forEach(pwd => {
         let decrypted = "";
         try {
             decrypted = atob(pwd.encryptedPassword || "");
-        } catch (e) {
+        } catch {
             decrypted = "Erreur déchiffrement";
         }
 
         const masked = (decrypted === "Erreur déchiffrement")
-            ? '•'.repeat(8)
-            : '•'.repeat(Math.max(1, decrypted.length));
+            ? "•".repeat(8)
+            : "•".repeat(Math.max(1, decrypted.length));
 
         const safeSite = escapeHtml(pwd.site);
         const safeLogin = escapeHtml(pwd.login);
@@ -62,8 +65,11 @@ export function displayPasswords(passwords) {
             decrypted
         });
 
-        return `
-        <div class="password-card" id="pwd-${pwd.id}">
+        const card = document.createElement("div");
+        card.className = "password-card";
+        card.id = `pwd-${pwd.id}`;
+
+        card.innerHTML = `
             <h3>${safeSite}</h3>
             <p><strong>Login :</strong> ${safeLogin}</p>
 
@@ -71,6 +77,7 @@ export function displayPasswords(passwords) {
                 <strong>Mot de passe :</strong>
                 <span id="pwd-value-${pwd.id}" class="password-hidden">${masked}</span>
             </p>
+
             <p>
                 <button class="btn-eye" onclick="togglePassword('${pwd.id}', '${decrypted}')">Afficher</button>
                 <button class="btn-copy" onclick="copyPassword('${decrypted}')">Copier</button>
@@ -80,9 +87,10 @@ export function displayPasswords(passwords) {
                 <button class="btn-edit" onclick="editPassword('${pwd.id}')">✏️ Modifier</button>
                 <button class="btn-delete" onclick="deletePassword('${pwd.id}')">🗑️ Supprimer</button>
             </div>
-        </div>
         `;
-    }).join("");
+
+        container.appendChild(card);
+    });
 }
 
 export async function savePassword() {
