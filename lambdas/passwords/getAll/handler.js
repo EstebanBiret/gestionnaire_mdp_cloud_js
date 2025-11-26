@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
@@ -12,6 +13,13 @@ const client = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(client);
+
+const sqs = new SQSClient({
+    region: process.env.AWS_REGION || "eu-west-3",
+    endpoint: process.env.LOCALSTACK_HOSTNAME
+        ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+        : process.env.SQS_ENDPOINT
+});
 
 exports.handler = async (event) => {
     try {
@@ -31,6 +39,15 @@ exports.handler = async (event) => {
         });
 
         const result = await docClient.send(command);
+
+        await sqs.send(new SendMessageCommand({
+            QueueUrl: process.env.LOGS_QUEUE_URL,
+            MessageBody: JSON.stringify({
+                type: "GET_PASSWORDS",
+                userId: session.userId,
+                timestamp: Date.now()
+            })
+        }));
 
         return successResponse(result.Items || []);
         

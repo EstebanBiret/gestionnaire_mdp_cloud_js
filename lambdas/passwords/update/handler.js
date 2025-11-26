@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
@@ -12,6 +13,13 @@ const client = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(client);
+
+const sqs = new SQSClient({
+    region: process.env.AWS_REGION || "eu-west-3",
+    endpoint: process.env.LOCALSTACK_HOSTNAME
+        ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+        : process.env.SQS_ENDPOINT
+});
 
 exports.handler = async (event) => {
     try {
@@ -88,6 +96,16 @@ exports.handler = async (event) => {
                 ReturnValues: 'ALL_NEW'
             })
         );
+
+        await sqs.send(new SendMessageCommand({
+            QueueUrl: process.env.LOGS_QUEUE_URL,
+            MessageBody: JSON.stringify({
+                type: "UPDATE_PASSWORD",
+                userId: session.userId,
+                passwordId,
+                timestamp: Date.now()
+            })
+        }));
 
         return successResponse({
             id: result.Attributes.id,

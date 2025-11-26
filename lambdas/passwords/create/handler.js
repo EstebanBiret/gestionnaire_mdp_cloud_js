@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const { successResponse, errorResponse, extractSessionId, validateSession } = require('./utils');
 
 const endpoint = process.env.LOCALSTACK_HOSTNAME
@@ -12,6 +13,13 @@ const client = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(client);
+
+const sqs = new SQSClient({
+    region: process.env.AWS_REGION || 'eu-west-3',
+    endpoint: process.env.LOCALSTACK_HOSTNAME
+        ? `http://${process.env.LOCALSTACK_HOSTNAME}:4566`
+        : process.env.SQS_ENDPOINT
+});
 
 exports.handler = async (event) => {
     try {
@@ -41,6 +49,17 @@ exports.handler = async (event) => {
         await docClient.send(new PutCommand({
             TableName: process.env.TABLE_NAME || "passwords",
             Item: passwordItem
+        }));
+
+        await sqs.send(new SendMessageCommand({
+            QueueUrl: process.env.LOGS_QUEUE_URL,
+            MessageBody: JSON.stringify({
+                type: "CREATE_PASSWORD",
+                userId: session.userId,
+                site,
+                login,
+                timestamp: Date.now()
+            })
         }));
 
         return successResponse(passwordItem, 201);

@@ -78,3 +78,14 @@ resource "aws_dynamodb_table" "users" {
     Environment = "dev"
   }
 }
+
+resource "aws_dynamodb_table" "logs" {
+  name         = "password_logs"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}
